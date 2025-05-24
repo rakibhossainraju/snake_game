@@ -13,7 +13,7 @@ extern "C" {
 
 #[wasm_bindgen]
 struct World {
-    pub width: usize,
+    width: usize,
 }
 
 #[wasm_bindgen]
