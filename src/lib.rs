@@ -10,3 +10,19 @@ extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     pub fn error(s: &str);
 }
+
+#[wasm_bindgen]
+struct World {
+    pub width: usize,
+}
+
+#[wasm_bindgen]
+impl World {
+    pub fn new() -> World {
+        World { width: 8 }
+    }
+
+    pub fn get_width(&self) -> usize {
+        self.width
+    }
+}

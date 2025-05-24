@@ -1,5 +1,5 @@
-document.querySelector('#app').innerHTML = `
-  <div>
-    <h1>Hello World</h1>
-  </div>
-`;
+import {World} from "snake_game";
+
+const world = World.new();
+
+console.log(world.get_width())
