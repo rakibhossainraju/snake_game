@@ -27,21 +27,24 @@ impl Snake {
 #[wasm_bindgen]
 struct World {
     width: usize,
+    size: usize,
     snake: Snake,
 }
 
 #[wasm_bindgen]
 impl World {
     pub fn new() -> Self {
+        const WORLD_SIZE: usize = 9;
         World {
-            width: 9,
+            width: WORLD_SIZE,
+            size: WORLD_SIZE * WORLD_SIZE,
             snake: Snake::new(40),
         }
     }
 
     pub fn update_snake_head(&mut self) {
         let snake_idx = self.get_snake_head_idx();
-        self.snake.body[0].0 = (snake_idx + 1) % (self.width * self.width);
+        self.snake.body[0].0 = (snake_idx + 1) % self.size;
     }
 
     pub fn get_width(&self) -> usize {
