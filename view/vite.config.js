@@ -5,7 +5,7 @@ export default defineConfig({
     build: {
         outDir: "public",
         input: {
-            app: "./src/bootstrap.js",
+            app: "./src/bootstrap.ts",
         },
     },
     server: {
