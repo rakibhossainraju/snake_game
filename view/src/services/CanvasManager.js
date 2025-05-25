@@ -26,12 +26,17 @@ class CanvasManager {
   }
 
   startGame() {
-    const intervelId = setInterval(() => {
+    setTimeout(() => {
       this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-      this.drawWorld();
-      this.drawSnake();
       this.#world.update_snake_head();
+      this.paint();
+      requestAnimationFrame(() => this.startGame());
     }, 100);
+  }
+
+  paint() {
+    this.drawWorld();
+    this.drawSnake();
   }
 
   drawWorld() {
