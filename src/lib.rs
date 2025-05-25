@@ -13,13 +13,22 @@ extern "C" {
 
 struct SnakeCell(usize);
 
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 struct Snake {
     body: Vec<SnakeCell>,
+    direction: Direction,
 }
 impl Snake {
     pub fn new(spawn_index: usize) -> Self {
         Snake {
             body: vec![SnakeCell(spawn_index)],
+            direction: Direction::Right,
         }
     }
 }
@@ -43,7 +52,28 @@ impl World {
 
     pub fn update_snake_head(&mut self) {
         let snake_idx = self.get_snake_head_idx();
-        self.snake.body[0].0 = (snake_idx + 1) % self.size;
+        let row = snake_idx / self.width;
+        let col = snake_idx % self.width;
+
+        let next_val = match self.snake.direction {
+            Direction::Right => {
+                let next_col = (col + 1) % self.width;
+                (row * self.width) + next_col
+            }
+            Direction::Left => {
+                let next_col = if col == 0 { self.width - 1 } else { col - 1 };
+                (row * self.width) + next_col
+            }
+            Direction::Up => {
+                let next_row = if row == 0 { self.width - 1 } else { row - 1 };
+                (next_row * self.width) + col
+            }
+            Direction::Down => {
+                let next_row = (row + 1) % self.width;
+                (next_row * self.width) + col
+            }
+        };
+        self.snake.body[0].0 = next_val;
     }
 
     pub fn get_width(&self) -> usize {
