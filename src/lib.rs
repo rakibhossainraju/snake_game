@@ -34,9 +34,14 @@ struct World {
 impl World {
     pub fn new() -> Self {
         World {
-            width: 8,
-            snake: Snake::new(10),
+            width: 9,
+            snake: Snake::new(40),
         }
+    }
+
+    pub fn update_snake_head(&mut self) {
+        let snake_idx = self.get_snake_head_idx();
+        self.snake.body[0].0 = (snake_idx + 1) % (self.width * self.width);
     }
 
     pub fn get_width(&self) -> usize {
