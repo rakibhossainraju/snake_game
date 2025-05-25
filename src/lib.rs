@@ -13,7 +13,9 @@ extern "C" {
 
 struct SnakeCell(usize);
 
-enum Direction {
+#[wasm_bindgen]
+#[derive(Clone, Copy, PartialEq)]
+pub enum Direction {
     Up,
     Down,
     Left,
@@ -78,6 +80,21 @@ impl World {
 
     pub fn get_width(&self) -> usize {
         self.width
+    }
+
+    pub fn change_direction(&mut self, new_direction: Direction) {
+        // Prevent 180° turns (classic snake game rule)
+        let invalid_move = match (self.snake.direction, new_direction) {
+            (Direction::Up, Direction::Down) => true,
+            (Direction::Down, Direction::Up) => true,
+            (Direction::Left, Direction::Right) => true,
+            (Direction::Right, Direction::Left) => true,
+            _ => false,
+        };
+
+        if !invalid_move {
+            self.snake.direction = new_direction;
+        }
     }
 
     pub fn get_snake_head_idx(&self) -> usize {
