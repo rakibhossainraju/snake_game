@@ -7,6 +7,7 @@ interface CanvasConfig {
   readonly CELL_SIZE: number;
   readonly WORLD_SIZE: number;
   readonly SNAKE_SPAWN_IDX: number;
+  readonly FPS: number;
   readonly canvasId: string;
 }
 
@@ -21,6 +22,7 @@ class CanvasManager {
     CELL_SIZE: 25,
     WORLD_SIZE: 9,
     SNAKE_SPAWN_IDX: 20,
+    FPS: 3,
     canvasId: "snake-canvas",
   };
 
@@ -97,7 +99,7 @@ class CanvasManager {
       this.world.update_snake_head();
       this.renderFrame();
       requestAnimationFrame(() => this.startGameLoop());
-    }, 100);
+    }, 1000 / this.config.FPS);
   }
 
   /**
