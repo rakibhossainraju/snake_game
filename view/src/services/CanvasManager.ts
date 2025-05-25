@@ -5,6 +5,8 @@ import { World } from "snake_game";
  */
 interface CanvasConfig {
   readonly CELL_SIZE: number;
+  readonly WORLD_SIZE: number;
+  readonly SNAKE_SPAWN_IDX: number;
   readonly canvasId: string;
 }
 
@@ -17,6 +19,8 @@ class CanvasManager {
   // Private properties
   private readonly config: CanvasConfig = {
     CELL_SIZE: 25,
+    WORLD_SIZE: 9,
+    SNAKE_SPAWN_IDX: 20,
     canvasId: "snake-canvas",
   };
 
@@ -30,7 +34,7 @@ class CanvasManager {
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
-    this.world = World.new();
+    this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
     this.canvas = document.getElementById(
       this.config.canvasId,

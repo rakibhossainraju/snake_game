@@ -33,12 +33,11 @@ struct World {
 
 #[wasm_bindgen]
 impl World {
-    pub fn new() -> Self {
-        const WORLD_SIZE: usize = 9;
+    pub fn new(world_size: usize, snake_spawn_idx: usize) -> Self {
         World {
-            width: WORLD_SIZE,
-            size: WORLD_SIZE * WORLD_SIZE,
-            snake: Snake::new(40),
+            width: world_size,
+            size: world_size * world_size,
+            snake: Snake::new(snake_spawn_idx),
         }
     }
 
