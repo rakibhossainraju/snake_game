@@ -43,7 +43,7 @@ impl World {
         self.width
     }
 
-    pub fn get_snake_head(&self) -> usize {
+    pub fn get_snake_head_idx(&self) -> usize {
         self.snake.body[0].0
     }
 }
