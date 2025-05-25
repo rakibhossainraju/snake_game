@@ -21,8 +21,8 @@ class CanvasManager {
   private readonly config: CanvasConfig = {
     CELL_SIZE: 25,
     WORLD_SIZE: 9,
-    SNAKE_SPAWN_IDX: 20,
-    FPS: 3,
+    SNAKE_SPAWN_IDX: 39,
+    FPS: 10,
     canvasId: "snake-canvas",
   };
 
