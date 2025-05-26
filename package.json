@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "prettier": "^3.5.3",
     "snake_game": "file:./pkg"
   },
   "devDependencies": {
