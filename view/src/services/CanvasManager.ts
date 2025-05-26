@@ -1,4 +1,4 @@
-import { World } from "snake_game";
+import { Direction, World } from "snake_game";
 
 /**
  * Configuration interface for the CanvasManager
@@ -21,7 +21,7 @@ class CanvasManager {
   private readonly config: CanvasConfig = {
     CELL_SIZE: 25,
     WORLD_SIZE: 9,
-    SNAKE_SPAWN_IDX: 39,
+    SNAKE_SPAWN_IDX: 40,
     FPS: 10,
     canvasId: "snake-canvas",
   };
@@ -84,9 +84,33 @@ class CanvasManager {
 
     if (!this.isGameRunning) {
       this.isGameRunning = true;
+      document.addEventListener("keydown", this.handleDirectionChange);
       this.startGameLoop();
     }
   }
+
+  handleDirectionChange = (event: KeyboardEvent): void => {
+    switch (event.key) {
+      case "ArrowLeft":
+        this.world.change_direction(Direction.Left);
+        event.preventDefault();
+        break;
+      case "ArrowRight":
+        this.world.change_direction(Direction.Right);
+        event.preventDefault();
+        break;
+      case "ArrowDown":
+        this.world.change_direction(Direction.Down);
+        event.preventDefault();
+        break;
+      case "ArrowUp":
+        this.world.change_direction(Direction.Up);
+        event.preventDefault();
+        break;
+      default:
+        return;
+    }
+  };
 
   /**
    * Start the game animation loop
@@ -96,8 +120,8 @@ class CanvasManager {
       if (!this.ctx || !this.canvas || !this.isGameRunning) return;
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.world.update_snake_head();
       this.renderFrame();
+      this.world.update_snake_head();
       requestAnimationFrame(() => this.startGameLoop());
     }, 1000 / this.config.FPS);
   }
@@ -165,6 +189,7 @@ class CanvasManager {
    */
   public stopGame(): void {
     this.isGameRunning = false;
+    document.removeEventListener("keydown", this.handleDirectionChange);
   }
 }
 
