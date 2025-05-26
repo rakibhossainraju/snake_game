@@ -2,8 +2,9 @@ import {defineConfig} from 'vite';
 
 /** @type {import('vite').UserConfig} */
 export default defineConfig({
+    root: './view',
     build: {
-        outDir: "public",
+        outDir: "./public",
         input: {
             app: "./src/bootstrap.ts",
         },
@@ -13,12 +14,8 @@ export default defineConfig({
             'Cross-Origin-Opener-Policy': 'same-origin',
             'Cross-Origin-Embedder-Policy': 'require-corp',
         },
-        fs: {
-            // Allow serving files from one level up to the project root
-            allow: ['..']
-        }
     },
     optimizeDeps: {
-        exclude: ['snake_game']
+        exclude: ["snake_game"]
     }
 });
