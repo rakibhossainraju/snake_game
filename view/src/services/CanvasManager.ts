@@ -32,9 +32,6 @@ class CanvasManager {
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor() {
     this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
