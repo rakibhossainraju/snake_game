@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"cargo run\" \"vite\"",
-    "build": "tsc && vite build",
+    "build": "npm run build_wasm && npm run build_js",
+    "build_wasm": "wasm-pack build --target web",
+    "build_js": "tsc && vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit"
   },
