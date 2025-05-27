@@ -53,28 +53,16 @@ impl World {
 
     pub fn update_snake_head(&mut self) {
         let snake_idx = self.get_snake_head_idx();
-        let row = snake_idx / self.width;
-        let col = snake_idx % self.width;
+        let (row, col) = (snake_idx / self.width, snake_idx % self.width);
 
-        let next_val = match self.snake.direction {
-            Direction::Right => {
-                let next_col = (col + 1) % self.width;
-                (row * self.width) + next_col
-            }
-            Direction::Left => {
-                let next_col = if col == 0 { self.width - 1 } else { col - 1 };
-                (row * self.width) + next_col
-            }
-            Direction::Up => {
-                let next_row = if row == 0 { self.width - 1 } else { row - 1 };
-                (next_row * self.width) + col
-            }
-            Direction::Down => {
-                let next_row = (row + 1) % self.width;
-                (next_row * self.width) + col
-            }
+        let (row, col) = match self.snake.direction {
+            Direction::Right => (row, (col + 1) % self.width),
+            Direction::Left => (row, if col == 0 { self.width - 1 } else { col - 1 }),
+            Direction::Up => (if row == 0 { self.width - 1 } else { row - 1 }, col),
+            Direction::Down => ((row + 1) % self.width, col),
         };
-        self.snake.body[0].0 = next_val;
+
+        self.snake.body[0].0 = (row * self.width) + col;
     }
 
     pub fn get_width(&self) -> usize {
