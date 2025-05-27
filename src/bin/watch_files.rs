@@ -17,6 +17,8 @@ fn main() -> Result<()> {
         "Watching {} for changes... (Press Ctrl+C to stop)",
         watch_path.display()
     );
+    println!("initial build...");
+    run_wasm_pack_build();
 
     // For debouncing save events
     let mut last_build = Instant::now();
@@ -43,29 +45,33 @@ fn main() -> Result<()> {
                     println!("Running wasm-pack build...");
 
                     // Run wasm-pack build --target web
-                    let output = std::process::Command::new("wasm-pack")
-                        .arg("build")
-                        .arg("--target")
-                        .arg("web")
-                        .output();
-
-                    match output {
-                        Ok(output) => {
-                            if output.status.success() {
-                                println!("✅ Build succeeded");
-                            } else {
-                                eprintln!(
-                                    "❌ Build failed:\n{}",
-                                    String::from_utf8_lossy(&output.stderr)
-                                );
-                            }
-                        }
-                        Err(e) => eprintln!("Failed to run wasm-pack: {}", e),
-                    }
+                    run_wasm_pack_build();
                 }
             }
             Err(e) => println!("Watch error: {:?}", e),
         }
     }
     Ok(())
+}
+
+fn run_wasm_pack_build() {
+    let output = std::process::Command::new("wasm-pack")
+        .arg("build")
+        .arg("--target")
+        .arg("web")
+        .output();
+
+    match output {
+        Ok(output) => {
+            if output.status.success() {
+                println!("✅ Build succeeded");
+            } else {
+                eprintln!(
+                    "❌ Build failed:\n{}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+            }
+        }
+        Err(e) => eprintln!("Failed to run wasm-pack: {}", e),
+    }
 }
