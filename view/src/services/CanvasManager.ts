@@ -137,24 +137,22 @@ class CanvasManager {
   private drawGrid(): void {
     if (!this.ctx) return;
 
+    const {
+      config: { CELL_SIZE },
+      worldSize,
+    } = this;
     this.ctx.beginPath();
     this.ctx.strokeStyle = "#ccc";
     this.ctx.lineWidth = 1;
 
-    for (let line = 0; line <= this.worldSize; line++) {
+    for (let line = 0; line <= worldSize; line++) {
       // Draw Horizontal Lines
-      this.ctx.moveTo(this.config.CELL_SIZE * line, 0);
-      this.ctx.lineTo(
-        this.config.CELL_SIZE * line,
-        this.worldSize * this.config.CELL_SIZE,
-      );
+      this.ctx.moveTo(CELL_SIZE * line, 0);
+      this.ctx.lineTo(CELL_SIZE * line, worldSize * CELL_SIZE);
 
       // Draw Vertical Lines
-      this.ctx.moveTo(0, this.config.CELL_SIZE * line);
-      this.ctx.lineTo(
-        this.config.CELL_SIZE * this.worldSize,
-        this.config.CELL_SIZE * line,
-      );
+      this.ctx.moveTo(0, CELL_SIZE * line);
+      this.ctx.lineTo(CELL_SIZE * worldSize, CELL_SIZE * line);
     }
 
     this.ctx.stroke();
