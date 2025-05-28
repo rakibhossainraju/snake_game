@@ -1,5 +1,7 @@
 import { Direction, World } from "snake_game";
 import { getSnakeBodyType } from "../bootstrap.ts";
+// @ts-ignore
+import { getRandomInt } from "../utils/random.js";
 
 /**
  * Configuration interface for the CanvasManager
@@ -25,7 +27,7 @@ class CanvasManager {
   private readonly config: CanvasConfig = {
     CELL_SIZE: 20,
     WORLD_SIZE,
-    SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE),
+    SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE * WORLD_SIZE),
     FPS: 5,
     canvasId: "snake-canvas",
   };
@@ -39,6 +41,7 @@ class CanvasManager {
   private constructor() {
     this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
+    this.world.set_food_idx();
     this.canvas = document.getElementById(
       this.config.canvasId,
     ) as HTMLCanvasElement;
@@ -135,6 +138,7 @@ class CanvasManager {
   private renderFrame(): void {
     this.drawGrid();
     this.drawSnake();
+    this.drawFood();
   }
 
   /**
@@ -185,6 +189,24 @@ class CanvasManager {
       );
       this.ctx.stroke();
     }
+  }
+
+  private drawFood(): void {
+    const foodCell = this.world.get_food_idx();
+    if (!this.ctx || !foodCell) return;
+
+    const col = foodCell % this.worldSize;
+    const row = Math.floor(foodCell / this.worldSize);
+
+    this.ctx.beginPath();
+    this.ctx.fillStyle = "#ff0000"; // Red color for food
+    this.ctx.fillRect(
+      this.config.CELL_SIZE * col,
+      this.config.CELL_SIZE * row,
+      this.config.CELL_SIZE,
+      this.config.CELL_SIZE,
+    );
+    this.ctx.stroke();
   }
 
   /**
