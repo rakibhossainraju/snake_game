@@ -26,9 +26,10 @@ struct Snake {
     direction: Direction,
 }
 impl Snake {
-    pub fn new(spawn_index: usize) -> Self {
+    pub fn new(spawn_index: usize, size: usize) -> Self {
+        let body: Vec<SnakeCell> = (0..size).map(|i| SnakeCell(spawn_index - i)).collect();
         Snake {
-            body: vec![SnakeCell(spawn_index)],
+            body,
             direction: Direction::Right,
         }
     }
@@ -47,8 +48,16 @@ impl World {
         World {
             width: world_size,
             size: world_size * world_size,
-            snake: Snake::new(snake_spawn_idx),
+            snake: Snake::new(snake_spawn_idx, 3),
         }
+    }
+    
+    pub fn get_snake_len(&self) -> usize {
+        self.snake.body.len()
+    }
+    
+    pub fn get_first_cell_ptr(&self) -> *const SnakeCell {
+        self.snake.body.as_ptr()
     }
 
     pub fn update_snake_head(&mut self) {
