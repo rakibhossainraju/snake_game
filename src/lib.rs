@@ -40,6 +40,7 @@ struct World {
     size: usize,
     snake: Snake,
     food_cell: Option<usize>,
+    point: usize,
 }
 
 #[wasm_bindgen]
@@ -50,6 +51,7 @@ impl World {
             size: world_size * world_size,
             snake: Snake::new(snake_spawn_idx, 3),
             food_cell: None,
+            point: 0,
         }
     }
 
@@ -68,6 +70,15 @@ impl World {
 
         for i in 1..body.len() {
             self.snake.body[i] = SnakeCell(body[i - 1].0);
+        }
+        if let Some(food_idx) = self.food_cell {
+            if self.get_snake_head_idx() == food_idx {
+                self.snake.body.push(SnakeCell(body[1].0));
+                self.set_food_idx();
+                self.point += 1;
+            }
+        } else {
+            self.set_food_idx();
         }
     }
 
@@ -107,6 +118,10 @@ impl World {
             }
             food_cell = self.get_random_int();
         }
+    }
+
+    pub fn get_point(&self) -> usize {
+        self.point
     }
 
     fn get_random_int(&self) -> usize {
