@@ -5,10 +5,8 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    pub fn log(s: &str);
-    #[wasm_bindgen(js_namespace = console)]
-    pub fn error(s: &str);
+    #[wasm_bindgen(js_namespace = Math)]
+    pub fn random() -> f64;
 }
 
 #[derive(Clone)]
@@ -41,6 +39,7 @@ struct World {
     width: usize,
     size: usize,
     snake: Snake,
+    food_cell: Option<usize>,
 }
 
 #[wasm_bindgen]
@@ -50,6 +49,7 @@ impl World {
             width: world_size,
             size: world_size * world_size,
             snake: Snake::new(snake_spawn_idx, 3),
+            food_cell: None,
         }
     }
 
@@ -92,6 +92,25 @@ impl World {
 
     pub fn get_snake_head_idx(&self) -> usize {
         self.snake.body[0].0
+    }
+
+    pub fn get_food_idx(&self) -> Option<usize> {
+        self.food_cell
+    }
+
+    pub fn set_food_idx(&mut self) {
+        let mut food_cell: usize = self.get_random_int();
+        loop {
+            if !self.snake.body.iter().any(|cell| cell.0 == food_cell) {
+                self.food_cell = Some(food_cell);
+                return;
+            }
+            food_cell = self.get_random_int();
+        }
+    }
+
+    fn get_random_int(&self) -> usize {
+        (random() * self.size as f64) as usize
     }
 
     fn gen_next_cell(&mut self) -> SnakeCell {
