@@ -26,7 +26,7 @@ class CanvasManager {
     CELL_SIZE: 20,
     WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE),
-    FPS: 6,
+    FPS: 5,
     canvasId: "snake-canvas",
   };
 
