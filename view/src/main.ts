@@ -1,3 +1,6 @@
 import { canvasManager } from "./services/CanvasManager";
+import { getSnakeBodyType } from "./bootstrap.ts";
 
-canvasManager.initCanvas();
+export function main(getSnakeBody: getSnakeBodyType) {
+  canvasManager.initCanvas(getSnakeBody);
+}
