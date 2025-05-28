@@ -12,6 +12,8 @@ interface CanvasConfig {
   readonly canvasId: string;
 }
 
+const WORLD_SIZE = 10;
+
 /**
  * CanvasManager handles the snake game rendering and game loop
  */
@@ -21,10 +23,10 @@ class CanvasManager {
   private getSnakeBody: getSnakeBodyType | null = null;
   // Private properties
   private readonly config: CanvasConfig = {
-    CELL_SIZE: 25,
-    WORLD_SIZE: 9,
-    SNAKE_SPAWN_IDX: 40,
-    FPS: 10,
+    CELL_SIZE: 20,
+    WORLD_SIZE,
+    SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE),
+    FPS: 6,
     canvasId: "snake-canvas",
   };
 
@@ -122,7 +124,7 @@ class CanvasManager {
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.renderFrame();
-      this.world.update_snake_head();
+      this.world.step();
       requestAnimationFrame(() => this.startGameLoop());
     }, 1000 / this.config.FPS);
   }
@@ -170,12 +172,11 @@ class CanvasManager {
       this.world.get_snake_len(),
     );
 
-    for (const cellIdx of snakeBody) {
+    for (const [i, cellIdx] of snakeBody.entries()) {
       const col = cellIdx % this.worldSize;
       const row = Math.floor(cellIdx / this.worldSize);
-
       this.ctx.beginPath();
-      this.ctx.fillStyle = "green";
+      this.ctx.fillStyle = i ? "#353591" : "#7878db";
       this.ctx.fillRect(
         this.config.CELL_SIZE * col,
         this.config.CELL_SIZE * row,
