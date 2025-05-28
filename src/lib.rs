@@ -11,6 +11,7 @@ extern "C" {
     pub fn error(s: &str);
 }
 
+#[derive(Clone)]
 struct SnakeCell(usize);
 
 #[wasm_bindgen]
@@ -61,7 +62,13 @@ impl World {
     }
 
     pub fn step(&mut self) {
-        self.snake.body[0] = self.gen_next_cell();
+        let body = self.snake.body.clone();
+        let next_cell = self.gen_next_cell();
+        self.snake.body[0] = next_cell;
+
+        for i in 1..body.len() {
+            self.snake.body[i] = SnakeCell(body[i - 1].0);
+        }
     }
 
     pub fn get_width(&self) -> usize {
