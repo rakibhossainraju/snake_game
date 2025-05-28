@@ -1,4 +1,5 @@
 import { Direction, World } from "snake_game";
+import { getSnakeBodyType } from "../bootstrap.ts";
 
 /**
  * Configuration interface for the CanvasManager
@@ -17,6 +18,7 @@ interface CanvasConfig {
 class CanvasManager {
   private static instance: CanvasManager;
 
+  private getSnakeBody: getSnakeBodyType | null = null;
   // Private properties
   private readonly config: CanvasConfig = {
     CELL_SIZE: 25,
@@ -68,7 +70,9 @@ class CanvasManager {
    * Initialize the canvas and start the game loop
    * This is the public API method
    */
-  public initCanvas(): void {
+  public initCanvas(getSnakeBody: getSnakeBodyType): void {
+    this.getSnakeBody = getSnakeBody;
+    // ... rest of the initialization code
     if (!this.canvas || !this.ctx) {
       console.error(
         "Cannot initialize canvas: Canvas or context is not available",
@@ -158,25 +162,28 @@ class CanvasManager {
     this.ctx.stroke();
   }
 
-  /**
-   * Draw the snake on the canvas
-   */
   private drawSnake(): void {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.getSnakeBody) return;
 
-    const snakeIdx = this.world.get_snake_head_idx();
-    const col = snakeIdx % this.worldSize;
-    const row = Math.floor(snakeIdx / this.worldSize);
-
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "green";
-    this.ctx.fillRect(
-      this.config.CELL_SIZE * col,
-      this.config.CELL_SIZE * row,
-      this.config.CELL_SIZE,
-      this.config.CELL_SIZE,
+    const snakeBody = this.getSnakeBody(
+      this.world.get_first_cell_ptr(),
+      this.world.get_snake_len(),
     );
-    this.ctx.stroke();
+
+    for (const cellIdx of snakeBody) {
+      const col = cellIdx % this.worldSize;
+      const row = Math.floor(cellIdx / this.worldSize);
+
+      this.ctx.beginPath();
+      this.ctx.fillStyle = "green";
+      this.ctx.fillRect(
+        this.config.CELL_SIZE * col,
+        this.config.CELL_SIZE * row,
+        this.config.CELL_SIZE,
+        this.config.CELL_SIZE,
+      );
+      this.ctx.stroke();
+    }
   }
 
   /**
