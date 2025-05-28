@@ -34,6 +34,7 @@ class CanvasManager {
 
   private readonly canvas: HTMLCanvasElement | null = null;
   private readonly ctx: CanvasRenderingContext2D | null = null;
+  private readonly pointsElement: HTMLSpanElement | null = null;
   private readonly world: World;
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
@@ -42,9 +43,12 @@ class CanvasManager {
     this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
     this.world.set_food_idx();
-    this.canvas = document.getElementById(
-      this.config.canvasId,
-    ) as HTMLCanvasElement;
+    this.canvas = <HTMLCanvasElement>(
+      document.getElementById(this.config.canvasId)
+    );
+    this.pointsElement = <HTMLSpanElement>(
+      document.getElementById("points-count")
+    );
 
     if (!this.canvas) {
       console.error(
@@ -139,6 +143,7 @@ class CanvasManager {
     this.drawGrid();
     this.drawSnake();
     this.drawFood();
+    this.showGamePoints();
   }
 
   /**
@@ -207,6 +212,13 @@ class CanvasManager {
       this.config.CELL_SIZE,
     );
     this.ctx.stroke();
+  }
+
+  private showGamePoints(): void {
+    if (!this.pointsElement) return;
+
+    const points = this.world.get_point();
+    this.pointsElement.textContent = points.toString();
   }
 
   /**
