@@ -51,27 +51,17 @@ impl World {
             snake: Snake::new(snake_spawn_idx, 3),
         }
     }
-    
+
     pub fn get_snake_len(&self) -> usize {
         self.snake.body.len()
     }
-    
+
     pub fn get_first_cell_ptr(&self) -> *const SnakeCell {
         self.snake.body.as_ptr()
     }
 
-    pub fn update_snake_head(&mut self) {
-        let snake_idx = self.get_snake_head_idx();
-        let (row, col) = (snake_idx / self.width, snake_idx % self.width);
-
-        let (row, col) = match self.snake.direction {
-            Direction::Right => (row, (col + 1) % self.width),
-            Direction::Left => (row, if col == 0 { self.width - 1 } else { col - 1 }),
-            Direction::Up => (if row == 0 { self.width - 1 } else { row - 1 }, col),
-            Direction::Down => ((row + 1) % self.width, col),
-        };
-
-        self.snake.body[0].0 = (row * self.width) + col;
+    pub fn step(&mut self) {
+        self.snake.body[0] = self.gen_next_cell();
     }
 
     pub fn get_width(&self) -> usize {
@@ -95,5 +85,29 @@ impl World {
 
     pub fn get_snake_head_idx(&self) -> usize {
         self.snake.body[0].0
+    }
+
+    fn gen_next_cell(&mut self) -> SnakeCell {
+        let snake_idx = self.get_snake_head_idx();
+        let (row, col) = (snake_idx / self.width, snake_idx % self.width);
+
+        match self.snake.direction {
+            Direction::Right => {
+                let new_col = if col == self.width - 1 { 0 } else { col + 1 };
+                SnakeCell(row * self.width + new_col)
+            }
+            Direction::Left => {
+                let new_col = if col == 0 { self.width - 1 } else { col - 1 };
+                SnakeCell(row * self.width + new_col)
+            }
+            Direction::Up => {
+                let new_row = if row == 0 { self.width - 1 } else { row - 1 };
+                SnakeCell(new_row * self.width + col)
+            }
+            Direction::Down => {
+                let new_row = if row == self.width - 1 { 0 } else { row + 1 };
+                SnakeCell(new_row * self.width + col)
+            }
+        }
     }
 }
