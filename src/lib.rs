@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -145,9 +146,24 @@ impl World {
     }
 
     /// Calculates the next cell position based on the current direction
-    fn calculate_next_cell(&self) -> SnakeCell {
+    fn calculate_next_cell(&mut self) -> SnakeCell {
         let snake_idx = self.snake.head_idx();
         let (row, col) = (snake_idx / self.width, snake_idx % self.width);
+
+        // Special handling for border cases to allow quick turns
+        // Check if we're at an edge and should prioritize pending direction changes
+        let is_at_edge = (col == 0 && self.snake.direction == Direction::Left)
+            || (col == self.width - 1 && self.snake.direction == Direction::Right)
+            || (row == 0 && self.snake.direction == Direction::Up)
+            || (row == self.width - 1 && self.snake.direction == Direction::Down);
+
+        if is_at_edge {
+            // At the border, we want to immediately check for pending direction changes
+            self.snake.handle_border_direction_change();
+        }
+
+        // Apply normal direction update (if no border change was applied)
+        self.snake.update_direction();
 
         match self.snake.direction {
             Direction::Right => {

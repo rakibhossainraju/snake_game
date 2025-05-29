@@ -35,12 +35,35 @@ impl Snake {
 
     /// Queue a direction change to be applied on the next movement step
     pub fn change_direction(&mut self, new_direction: Direction) {
-        // Store the direction change request for processing during the next movement
-        // This prevents multiple direction changes between movement frames
+        // Always store the most recent direction change request
+        // This makes controls feel more responsive when pressing multiple keys quickly
         self.pending_direction = Some(new_direction);
     }
 
+    /// Special handling for direction changes at borders
+    /// More lenient validation to allow quick turns when at the edge
+    pub fn handle_border_direction_change(&mut self) {
+        if let Some(new_direction) = self.pending_direction {
+            // At borders, we only prevent exact 180-degree turns
+            // This allows for quick "around the corner" turns
+            let direct_reversal = match (&self.direction, &new_direction) {
+                (Direction::Up, Direction::Down) => true,
+                (Direction::Down, Direction::Up) => true,
+                (Direction::Left, Direction::Right) => true,
+                (Direction::Right, Direction::Left) => true,
+                _ => false,
+            };
+
+            if !direct_reversal {
+                self.direction = new_direction;
+                self.pending_direction = None; // Clear the pending direction
+                return; // Don't proceed with normal direction update
+            }
+        }
+    }
+
     /// Process any pending direction change and apply it if valid
+    /// This is the normal case for non-border movement
     pub fn update_direction(&mut self) {
         if let Some(new_direction) = self.pending_direction.take() {
             // Prevent 180° turns (classic snake game rule)
