@@ -1,7 +1,5 @@
 import { Direction, World } from "snake_game";
 import { getSnakeBodyType } from "../bootstrap.ts";
-// @ts-ignore
-import { getRandomInt } from "../utils/random.js";
 
 /**
  * Configuration interface for the CanvasManager
@@ -28,7 +26,7 @@ class CanvasManager {
     CELL_SIZE: 30,
     WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE * WORLD_SIZE),
-    FPS: 5,
+    FPS: 6,
     canvasId: "snake-canvas",
   };
 
@@ -390,7 +388,22 @@ class CanvasManager {
         this.ctx.arc(eyeX2, eyeY2, eyeSize, 0, Math.PI * 2);
         this.ctx.fill();
       }
-      // Snake body
+      // Snake tail (last segment)
+      else if (i === snakeBody.length - 1) {
+        // Get direction of tail by looking at the second-to-last and last segments
+        const tailDirection = this.getTailDirection(snakeBody, i);
+
+        // Gradient color for tail
+        const gradientPos = i / snakeBody.length;
+        const r = Math.floor(46 + (26 - 46) * gradientPos);
+        const g = Math.floor(204 + (174 - 204) * gradientPos);
+        const b = Math.floor(113 + (159 - 113) * gradientPos);
+        this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+
+        // Draw the pointed tail based on direction
+        this.drawPointedTail(x, y, size, padding, tailDirection);
+      }
+      // Snake body segments (middle segments)
       else {
         // Gradient from head color to tail color based on position
         const gradientPos = i / snakeBody.length;
@@ -409,6 +422,85 @@ class CanvasManager {
         this.ctx.fill();
       }
     }
+  }
+
+  /**
+   * Determine the direction of the snake's tail by comparing the last two segments
+   */
+  private getTailDirection(snakeBody: number[], tailIndex: number): number {
+    if (tailIndex < 1 || tailIndex >= snakeBody.length) return 0;
+
+    const lastCell = snakeBody[tailIndex];
+    const secondLastCell = snakeBody[tailIndex - 1];
+
+    const lastCol = lastCell % this.worldSize;
+    const lastRow = Math.floor(lastCell / this.worldSize);
+    const secondLastCol = secondLastCell % this.worldSize;
+    const secondLastRow = Math.floor(secondLastCell / this.worldSize);
+
+    // Determine direction based on position difference
+    // Handling wrapping around the grid edges
+    if (Math.abs(lastCol - secondLastCol) > 1) {
+      // Wrapped horizontally
+      return lastCol > secondLastCol ? 3 : 1; // Left or Right
+    } else if (Math.abs(lastRow - secondLastRow) > 1) {
+      // Wrapped vertically
+      return lastRow > secondLastRow ? 0 : 2; // Up or Down
+    } else {
+      // Normal case, no wrapping
+      if (lastCol < secondLastCol) return 3; // Tail points Left
+      if (lastCol > secondLastCol) return 1; // Tail points Right
+      if (lastRow < secondLastRow) return 0; // Tail points Up
+      if (lastRow > secondLastRow) return 2; // Tail points Down
+    }
+
+    return 0; // Default Up
+  }
+
+  /**
+   * Draw a pointed tail for the snake based on the direction
+   */
+  private drawPointedTail(
+    x: number,
+    y: number,
+    size: number,
+    padding: number,
+    direction: number,
+  ): void {
+    if (!this.ctx) return;
+
+    const adjustedX = x + padding;
+    const adjustedY = y + padding;
+    const adjustedSize = size - padding * 2;
+
+    // Draw a triangle for the tail based on direction
+    this.ctx.beginPath();
+
+    switch (direction) {
+      case 0: // Up - tail points down
+        this.ctx.moveTo(adjustedX, adjustedY + adjustedSize);
+        this.ctx.lineTo(adjustedX + adjustedSize / 2, adjustedY);
+        this.ctx.lineTo(adjustedX + adjustedSize, adjustedY + adjustedSize);
+        break;
+      case 1: // Right - tail points left
+        this.ctx.moveTo(adjustedX, adjustedY);
+        this.ctx.lineTo(adjustedX + adjustedSize, adjustedY + adjustedSize / 2);
+        this.ctx.lineTo(adjustedX, adjustedY + adjustedSize);
+        break;
+      case 2: // Down - tail points up
+        this.ctx.moveTo(adjustedX, adjustedY);
+        this.ctx.lineTo(adjustedX + adjustedSize / 2, adjustedY + adjustedSize);
+        this.ctx.lineTo(adjustedX + adjustedSize, adjustedY);
+        break;
+      case 3: // Left - tail points right
+        this.ctx.moveTo(adjustedX + adjustedSize, adjustedY);
+        this.ctx.lineTo(adjustedX, adjustedY + adjustedSize / 2);
+        this.ctx.lineTo(adjustedX + adjustedSize, adjustedY + adjustedSize);
+        break;
+    }
+
+    this.ctx.closePath();
+    this.ctx.fill();
   }
 
   // Helper method to draw rounded rectangles
