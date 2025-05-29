@@ -20,6 +20,13 @@ pub enum Direction {
     Right,
 }
 
+#[wasm_bindgen]
+pub enum GameState {
+    Playing,
+    Won,
+    GameOver,
+}
+
 struct Snake {
     body: Vec<SnakeCell>,
     direction: Direction,
@@ -41,6 +48,7 @@ struct World {
     snake: Snake,
     food_cell: Option<usize>,
     point: usize,
+    state: Option<GameState>,
 }
 
 #[wasm_bindgen]
@@ -52,6 +60,7 @@ impl World {
             snake: Snake::new(snake_spawn_idx, 3),
             food_cell: None,
             point: 0,
+            state: None,
         }
     }
 
@@ -64,6 +73,10 @@ impl World {
     }
 
     pub fn step(&mut self) {
+        if self.state.is_none() {
+            return; // game has not started
+        }
+
         let body = self.snake.body.clone();
         let next_cell = self.gen_next_cell();
         self.snake.body[0] = next_cell;
@@ -101,6 +114,13 @@ impl World {
         }
     }
 
+    pub fn game_start(&mut self) {
+        if self.state.is_none() {
+            self.state = Some(GameState::Playing);
+            self.set_food_idx();
+        }
+    }
+
     pub fn get_snake_head_idx(&self) -> usize {
         self.snake.body[0].0
     }
@@ -109,8 +129,18 @@ impl World {
         self.food_cell
     }
 
-    pub fn set_food_idx(&mut self) {
+    pub fn get_point(&self) -> usize {
+        self.point
+    }
+
+    fn set_food_idx(&mut self) {
         let mut food_cell: usize = self.get_random_int();
+
+        if self.snake.body.len() >= self.size {
+            self.food_cell = None; // No space for food
+            return;
+        }
+
         loop {
             if !self.snake.body.iter().any(|cell| cell.0 == food_cell) {
                 self.food_cell = Some(food_cell);
@@ -118,10 +148,6 @@ impl World {
             }
             food_cell = self.get_random_int();
         }
-    }
-
-    pub fn get_point(&self) -> usize {
-        self.point
     }
 
     fn get_random_int(&self) -> usize {
