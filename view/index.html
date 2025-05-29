@@ -9,8 +9,18 @@
   </head>
   <body>
     <div id="content-wrapper">
-      <canvas id="snake-canvas"></canvas>
-      <h3>Points: <span id="points-count"></span></h3>
+      <div class="game-container">
+        <h1 class="game-title">🐍 Snake Game</h1>
+
+        <div class="scoreboard">
+          <div class="score-display">
+            <span class="score-label">Score:</span>
+            <span id="points-count" class="score-value">0</span>
+          </div>
+        </div>
+
+        <canvas id="snake-canvas"></canvas>
+      </div>
     </div>
     <script type="module" src="./src/bootstrap.ts"></script>
   </body>
