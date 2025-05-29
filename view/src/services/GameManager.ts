@@ -1,4 +1,4 @@
-import { Direction, World } from "snake_game";
+import { Direction, GameState, World } from "snake_game";
 import { getSnakeBodyType } from "../bootstrap";
 import {
   GameConfig,
@@ -9,16 +9,6 @@ import { SnakeRenderer } from "./SnakeRenderer";
 import { FoodRenderer } from "./FoodRenderer";
 import { GridRenderer } from "./GridRenderer";
 import { UIRenderer } from "./UIRenderer";
-
-/**
- * Game state enum matching rust GameState
- */
-enum GameState {
-  Playing = 0,
-  Won = 1,
-  GameOver = 2,
-  Ready = 3,
-}
 
 /**
  * Main game manager class that coordinates all game components
@@ -52,7 +42,7 @@ export class GameManager {
       this.config.canvasId,
     ) as HTMLCanvasElement;
     this.pointsElement = document.getElementById(
-      "points-count",
+      this.config.pointsElementId,
     ) as HTMLSpanElement;
 
     if (!this.canvas) {

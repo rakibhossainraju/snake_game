@@ -10,7 +10,7 @@ export class UIRenderer {
   ) {}
 
   /**
-   * Display game over message
+   * Display game over a message
    */
   public displayGameOver(point: number): void {
     this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";

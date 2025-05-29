@@ -7,6 +7,7 @@ export interface GameConfig {
   readonly SNAKE_SPAWN_IDX: number;
   readonly FPS: number;
   readonly canvasId: string;
+  readonly pointsElementId: string;
 }
 
 /**
@@ -26,5 +27,6 @@ export function createDefaultConfig(): GameConfig {
     ),
     FPS: 6,
     canvasId: "snake-canvas",
+    pointsElementId: "points-count",
   };
 }
