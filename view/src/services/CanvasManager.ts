@@ -315,6 +315,9 @@ class CanvasManager {
       this.world.get_snake_len(),
     );
 
+    const gameState = this.world.get_game_state();
+    const isGameOver = gameState === 2; // Check if game is over (state 2 = GameOver)
+
     for (const [i, cellIdx] of snakeBody.entries()) {
       const col = cellIdx % this.worldSize;
       const row = Math.floor(cellIdx / this.worldSize);
@@ -339,10 +342,6 @@ class CanvasManager {
           5,
         );
         this.ctx.fill();
-
-        // Add eyes
-        const eyeSize = size / 8;
-        this.ctx.fillStyle = "#000";
 
         // Position eyes based on direction
         const snakeDirection = this.world.get_direction
@@ -380,13 +379,39 @@ class CanvasManager {
             eyeY2 = y + (size * 2) / 3;
         }
 
-        this.ctx.beginPath();
-        this.ctx.arc(eyeX1, eyeY1, eyeSize, 0, Math.PI * 2);
-        this.ctx.fill();
+        const eyeSize = size / 8;
 
-        this.ctx.beginPath();
-        this.ctx.arc(eyeX2, eyeY2, eyeSize, 0, Math.PI * 2);
-        this.ctx.fill();
+        if (isGameOver) {
+          // Draw red X eyes when game is over (snake hit itself)
+          this.ctx.strokeStyle = "#ff0000";
+          this.ctx.lineWidth = 2;
+
+          // First X eye
+          this.ctx.beginPath();
+          this.ctx.moveTo(eyeX1 - eyeSize, eyeY1 - eyeSize);
+          this.ctx.lineTo(eyeX1 + eyeSize, eyeY1 + eyeSize);
+          this.ctx.moveTo(eyeX1 + eyeSize, eyeY1 - eyeSize);
+          this.ctx.lineTo(eyeX1 - eyeSize, eyeY1 + eyeSize);
+          this.ctx.stroke();
+
+          // Second X eye
+          this.ctx.beginPath();
+          this.ctx.moveTo(eyeX2 - eyeSize, eyeY2 - eyeSize);
+          this.ctx.lineTo(eyeX2 + eyeSize, eyeY2 + eyeSize);
+          this.ctx.moveTo(eyeX2 + eyeSize, eyeY2 - eyeSize);
+          this.ctx.lineTo(eyeX2 - eyeSize, eyeY2 + eyeSize);
+          this.ctx.stroke();
+        } else {
+          // Normal eyes
+          this.ctx.fillStyle = "#000";
+          this.ctx.beginPath();
+          this.ctx.arc(eyeX1, eyeY1, eyeSize, 0, Math.PI * 2);
+          this.ctx.fill();
+
+          this.ctx.beginPath();
+          this.ctx.arc(eyeX2, eyeY2, eyeSize, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
       }
       // Snake tail (last segment)
       else if (i === snakeBody.length - 1) {
