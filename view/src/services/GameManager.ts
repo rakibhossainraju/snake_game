@@ -1,4 +1,4 @@
-import { Direction, GameState, World } from "snake_game";
+import { Direction, World, GameState } from "snake_game";
 import { getSnakeBodyType } from "../bootstrap";
 import {
   GameConfig,
