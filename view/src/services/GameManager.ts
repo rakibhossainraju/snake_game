@@ -25,6 +25,7 @@ export class GameManager {
   private world: World;
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
+  private frameCount: number = 0;
 
   // Rendering components
   private snakeRenderer: SnakeRenderer | null = null;
@@ -158,19 +159,25 @@ export class GameManager {
    * Start the game animation loop
    */
   private startGameLoop(): void {
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       if (!this.ctx || !this.canvas || !this.isGameRunning) return;
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.renderFrame();
 
-      // Only call a step if the game is still playing
+      // Only move the snake every N frames for smooth movement
+      // while still accepting input every frame
       if (this.world.get_game_state() === GameState.Playing) {
-        this.world.step();
+        this.frameCount++;
+        if (this.frameCount >= this.config.MOVEMENT_FRAMES) {
+          this.world.step();
+          this.frameCount = 0;
+        }
       }
 
-      requestAnimationFrame(() => this.startGameLoop());
-    }, 1000 / this.config.FPS);
+      // Continue the game loop
+      this.startGameLoop();
+    });
   }
 
   /**

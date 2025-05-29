@@ -5,7 +5,7 @@ export interface GameConfig {
   readonly CELL_SIZE: number;
   readonly WORLD_SIZE: number;
   readonly SNAKE_SPAWN_IDX: number;
-  readonly FPS: number;
+  readonly MOVEMENT_FRAMES: number;
   readonly canvasId: string;
   readonly pointsElementId: string;
 }
@@ -25,7 +25,7 @@ export function createDefaultConfig(): GameConfig {
     SNAKE_SPAWN_IDX: Math.floor(
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
     ),
-    FPS: 5,
+    MOVEMENT_FRAMES: 10,
     canvasId: "snake-canvas",
     pointsElementId: "points-count",
   };
