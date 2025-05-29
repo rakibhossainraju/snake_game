@@ -38,7 +38,7 @@ impl World {
         World {
             width: world_size,
             size: world_size * world_size,
-            snake: Snake::new(snake_spawn_idx, 3),
+            snake: Snake::new(snake_spawn_idx, 2),
             food_cell: None,
             points: 0,
             game_engine: GameEngine::new(),
@@ -47,12 +47,12 @@ impl World {
 
     /// Gets the length of the snake
     pub fn get_snake_len(&self) -> usize {
-        self.snake.body.len()
+        self.snake.len()
     }
 
     /// Gets a pointer to the first snake cell for JS interop
     pub fn get_first_cell_ptr(&self) -> *const SnakeCell {
-        self.snake.body.as_ptr()
+        self.snake.body_ptr()
     }
 
     /// Advances the game state by one step
@@ -61,24 +61,21 @@ impl World {
             return; // Game not started or already finished
         }
 
-        let body = self.snake.body.clone();
         let next_cell = self.calculate_next_cell();
 
         // Check for collision with own body
-        if body.iter().skip(1).any(|cell| cell.0 == next_cell.0) {
+        if self.snake.would_collide(next_cell.0) {
             self.game_engine.set_state(GameState::GameOver);
             return;
         }
 
-        self.snake.body[0] = next_cell;
+        // Move the snake
+        self.snake.slither(next_cell);
 
-        for i in 1..body.len() {
-            self.snake.body[i] = SnakeCell(body[i - 1].0);
-        }
-
+        // Check for food consumption
         if let Some(food_idx) = self.food_cell {
-            if self.get_snake_head_idx() == food_idx {
-                self.snake.body.push(SnakeCell(body[1].0));
+            if self.snake.head_idx() == food_idx {
+                self.snake.grow();
                 self.place_food();
                 self.points += 1;
             }
@@ -94,18 +91,7 @@ impl World {
 
     /// Changes the snake's direction of movement
     pub fn change_direction(&mut self, new_direction: Direction) {
-        // Prevent 180° turns (classic snake game rule)
-        let invalid_move = match (&self.snake.direction, &new_direction) {
-            (Direction::Up, Direction::Down) => true,
-            (Direction::Down, Direction::Up) => true,
-            (Direction::Left, Direction::Right) => true,
-            (Direction::Right, Direction::Left) => true,
-            _ => false,
-        };
-
-        if !invalid_move {
-            self.snake.direction = new_direction;
-        }
+        self.snake.change_direction(new_direction);
     }
 
     /// Starts the game
@@ -118,7 +104,7 @@ impl World {
 
     /// Gets the index of the snake's head
     pub fn get_snake_head_idx(&self) -> usize {
-        self.snake.body[0].0
+        self.snake.head_idx()
     }
 
     /// Gets the index of the food cell
@@ -138,17 +124,12 @@ impl World {
 
     /// Gets the current direction as a number for JS interop
     pub fn get_direction(&self) -> u8 {
-        match self.snake.direction {
-            Direction::Up => 0,
-            Direction::Right => 1,
-            Direction::Down => 2,
-            Direction::Left => 3,
-        }
+        self.snake.direction_as_number()
     }
 
     /// Places food at a random empty position
     fn place_food(&mut self) {
-        if self.snake.body.len() >= self.size {
+        if self.snake.len() >= self.size {
             self.food_cell = None; // No space for food
             self.game_engine.set_state(GameState::Won);
             return;
@@ -156,7 +137,7 @@ impl World {
 
         loop {
             let food_position = random::random_range(0, self.size);
-            if !self.snake.body.iter().any(|cell| cell.0 == food_position) {
+            if !self.snake.occupies(food_position) {
                 self.food_cell = Some(food_position);
                 return;
             }
@@ -165,7 +146,7 @@ impl World {
 
     /// Calculates the next cell position based on the current direction
     fn calculate_next_cell(&self) -> SnakeCell {
-        let snake_idx = self.get_snake_head_idx();
+        let snake_idx = self.snake.head_idx();
         let (row, col) = (snake_idx / self.width, snake_idx % self.width);
 
         match self.snake.direction {
