@@ -1,6 +1,10 @@
 import { Direction, World } from "snake_game";
 import { getSnakeBodyType } from "../bootstrap";
-import { GameConfig, createDefaultConfig, DEFAULT_WORLD_SIZE } from "./GameConfig";
+import {
+  GameConfig,
+  createDefaultConfig,
+  DEFAULT_WORLD_SIZE,
+} from "./GameConfig";
 import { SnakeRenderer } from "./SnakeRenderer";
 import { FoodRenderer } from "./FoodRenderer";
 import { GridRenderer } from "./GridRenderer";
@@ -44,8 +48,12 @@ export class GameManager {
     this.worldSize = this.world.get_width();
 
     // Initialize DOM elements
-    this.canvas = document.getElementById(this.config.canvasId) as HTMLCanvasElement;
-    this.pointsElement = document.getElementById("points-count") as HTMLSpanElement;
+    this.canvas = document.getElementById(
+      this.config.canvasId,
+    ) as HTMLCanvasElement;
+    this.pointsElement = document.getElementById(
+      "points-count",
+    ) as HTMLSpanElement;
 
     if (!this.canvas) {
       console.error(
@@ -72,7 +80,11 @@ export class GameManager {
   private initializeRenderers(): void {
     if (!this.ctx || !this.canvas) return;
 
-    this.snakeRenderer = new SnakeRenderer(this.ctx, this.config, this.worldSize);
+    this.snakeRenderer = new SnakeRenderer(
+      this.ctx,
+      this.config,
+      this.worldSize,
+    );
     this.foodRenderer = new FoodRenderer(this.ctx, this.config, this.worldSize);
     this.gridRenderer = new GridRenderer(this.ctx, this.config, this.worldSize);
     this.uiRenderer = new UIRenderer(this.ctx, this.canvas);
@@ -139,10 +151,13 @@ export class GameManager {
   };
 
   /**
-   * Handle game start with spacebar
+   * Handle game start with spacer
    */
   private handleGameStart = (event: KeyboardEvent): void => {
-    if (event.code === "Space" && this.world.get_game_state() === GameState.Ready) {
+    if (
+      event.code === "Space" &&
+      this.world.get_game_state() === GameState.Ready
+    ) {
       document.removeEventListener("keydown", this.handleGameStart);
       this.world.game_start();
       event.preventDefault();
@@ -159,7 +174,7 @@ export class GameManager {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.renderFrame();
 
-      // Only call step if the game is still playing
+      // Only call a step if the game is still playing
       if (this.world.get_game_state() === GameState.Playing) {
         this.world.step();
       }
@@ -172,9 +187,14 @@ export class GameManager {
    * Render a single frame of the game
    */
   private renderFrame(): void {
-    if (!this.gridRenderer || !this.snakeRenderer || 
-        !this.foodRenderer || !this.uiRenderer ||
-        !this.getSnakeBody) return;
+    if (
+      !this.gridRenderer ||
+      !this.snakeRenderer ||
+      !this.foodRenderer ||
+      !this.uiRenderer ||
+      !this.getSnakeBody
+    )
+      return;
 
     // Draw the grid first
     this.gridRenderer.drawGrid();
@@ -194,9 +214,9 @@ export class GameManager {
       );
 
       this.snakeRenderer.drawSnake(
-        snakeBody, 
+        snakeBody,
         () => this.world.get_direction(),
-        gameState === GameState.GameOver
+        gameState === GameState.GameOver,
       );
 
       const foodCell = this.world.get_food_idx();
@@ -213,7 +233,7 @@ export class GameManager {
   }
 
   /**
-   * Check the current game state and display appropriate message
+   * Check the current game state and display the appropriate message
    */
   private checkGameState(): void {
     if (!this.uiRenderer) return;
@@ -242,7 +262,7 @@ export class GameManager {
   }
 
   /**
-   * Handle restart game with spacebar
+   * Handle restart game with spacer
    */
   private handleRestart = (event: KeyboardEvent): void => {
     if (event.code === "Space") {
@@ -253,11 +273,13 @@ export class GameManager {
   };
 
   /**
-   * Reset the game to initial state
+   * Reset the game to the initial state
    */
   private resetGame(): void {
     // Create a new world instance
-    const newSpawnIdx = Math.floor(Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE);
+    const newSpawnIdx = Math.floor(
+      Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
+    );
     this.world = World.new(this.config.WORLD_SIZE, newSpawnIdx);
 
     // Restart the game loop

@@ -54,7 +54,7 @@ export class SnakeRenderer {
       }
       // Snake tail (last segment)
       else if (i === snakeBody.length - 1) {
-        // Get direction of tail by looking at the second-to-last and last segments
+        // Get a direction of tail by looking at the second-to-last and last segments
         const tailDirection = this.getTailDirection(snakeBody, i);
 
         // Gradient color for tail
@@ -64,7 +64,7 @@ export class SnakeRenderer {
         const b = Math.floor(113 + (159 - 113) * gradientPos);
         this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
 
-        // Draw the pointed tail based on direction
+        // Draw the pointed tail based on a direction
         CanvasUtils.drawPointedTail(
           this.ctx,
           x,
@@ -95,7 +95,7 @@ export class SnakeRenderer {
     // Set head color based on game state
     this.ctx.fillStyle = "#2ecc71"; // Darker red if game over
 
-    // Create rounded rectangle for head
+    // Create a rounded rectangle for the head
     CanvasUtils.roundRect(
       this.ctx,
       x + padding,
@@ -106,7 +106,7 @@ export class SnakeRenderer {
     );
     this.ctx.fill();
 
-    // Get eye positions based on direction
+    // Get eye positions based on a direction
     const eyePositions = this.getEyePositions(x, y, size, direction);
     const eyeSize = size / 8;
 
@@ -119,7 +119,7 @@ export class SnakeRenderer {
   }
 
   /**
-   * Get eye positions based on direction
+   * Get eye positions based on a direction
    */
   private getEyePositions(
     x: number,
@@ -162,7 +162,7 @@ export class SnakeRenderer {
   }
 
   /**
-   * Draw X-shaped eyes when game is over
+   * Draw X-shaped eyes when the game is over
    */
   private drawXEyes(positions: EyePositions, eyeSize: number): void {
     const { eyeX1, eyeX2, eyeY1, eyeY2 } = positions;
@@ -171,10 +171,10 @@ export class SnakeRenderer {
     this.ctx.strokeStyle = "#ff0000";
     this.ctx.lineWidth = 2;
 
-    // Draw X for first eye
+    // Draw X for the first eye
     this.drawXShape(eyeX1, eyeY1, eyeSize);
 
-    // Draw X for second eye
+    // Draw X for the second eye
     this.drawXShape(eyeX2, eyeY2, eyeSize);
   }
 
@@ -201,7 +201,7 @@ export class SnakeRenderer {
     // Draw first eye
     this.drawCircle(eyeX1, eyeY1, eyeSize);
 
-    // Draw second eye
+    // Draw a second eye
     this.drawCircle(eyeX2, eyeY2, eyeSize);
   }
 
@@ -261,7 +261,7 @@ export class SnakeRenderer {
   }
 
   /**
-   * Calculate direction based on position difference
+   * Calculate a direction based on position difference
    * @param col1 First column position
    * @param row1 First row position
    * @param col2 Second column position

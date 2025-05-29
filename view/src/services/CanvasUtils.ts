@@ -18,13 +18,7 @@ export class CanvasUtils {
     ctx.lineTo(x + width - radius, y);
     ctx.arcTo(x + width, y, x + width, y + radius, radius);
     ctx.lineTo(x + width, y + height - radius);
-    ctx.arcTo(
-      x + width,
-      y + height,
-      x + width - radius,
-      y + height,
-      radius,
-    );
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
     ctx.lineTo(x + radius, y + height);
     ctx.arcTo(x, y + height, x, y + height - radius, radius);
     ctx.lineTo(x, y + radius);
@@ -47,7 +41,7 @@ export class CanvasUtils {
     const adjustedY = y + padding;
     const adjustedSize = size - padding * 2;
 
-    // Draw a triangle for the tail based on direction
+    // Draw a triangle for the tail based on a direction
     ctx.beginPath();
 
     switch (direction) {
