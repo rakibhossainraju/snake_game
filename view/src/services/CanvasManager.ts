@@ -25,7 +25,7 @@ class CanvasManager {
   private getSnakeBody: getSnakeBodyType | null = null;
   // Private properties
   private readonly config: CanvasConfig = {
-    CELL_SIZE: 20,
+    CELL_SIZE: 30,
     WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(Math.random() * WORLD_SIZE * WORLD_SIZE),
     FPS: 5,
@@ -35,14 +35,14 @@ class CanvasManager {
   private readonly canvas: HTMLCanvasElement | null = null;
   private readonly ctx: CanvasRenderingContext2D | null = null;
   private readonly pointsElement: HTMLSpanElement | null = null;
-  private readonly world: World;
+  private world: World;
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
 
   private constructor() {
     this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
-    this.world.game_start();
+    // Don't auto-start the game
     this.canvas = <HTMLCanvasElement>(
       document.getElementById(this.config.canvasId)
     );
@@ -95,6 +95,7 @@ class CanvasManager {
     if (!this.isGameRunning) {
       this.isGameRunning = true;
       document.addEventListener("keydown", this.handleDirectionChange);
+      document.addEventListener("keydown", this.handleGameStart);
       this.startGameLoop();
     }
   }
@@ -131,7 +132,11 @@ class CanvasManager {
 
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.renderFrame();
-      this.world.step();
+      // Only call step if the game is still playing
+      if (this.world.get_game_state() === 0) {
+        // Playing state
+        this.world.step();
+      }
       requestAnimationFrame(() => this.startGameLoop());
     }, 1000 / this.config.FPS);
   }
@@ -141,9 +146,112 @@ class CanvasManager {
    */
   private renderFrame(): void {
     this.drawGrid();
-    this.drawSnake();
-    this.drawFood();
-    this.showGamePoints();
+
+    // Check game state first
+    const gameState = this.world.get_game_state();
+
+    if (gameState === 3) {
+      // Ready state
+      this.displayStartScreen();
+    } else {
+      this.drawSnake();
+      this.drawFood();
+      this.showGamePoints();
+      this.checkGameState();
+    }
+  }
+
+  /**
+   * Check the current game state and display appropriate message
+   */
+  private checkGameState(): void {
+    const gameState = this.world.get_game_state();
+    if (gameState === 2) {
+      // GameOver
+      this.displayGameOver();
+      this.stopGame();
+    } else if (gameState === 1) {
+      // Won
+      this.displayGameWon();
+      this.stopGame();
+    } else if (gameState === 3) {
+      // Ready
+      this.displayStartScreen();
+    }
+  }
+
+  /**
+   * Display game over message
+   */
+  private displayGameOver(): void {
+    if (!this.ctx || !this.canvas) return;
+
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.fillStyle = "#ff3333";
+    this.ctx.font = "bold 24px Arial";
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(
+      "GAME OVER",
+      this.canvas.width / 2,
+      this.canvas.height / 2 - 15,
+    );
+
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.font = "16px Arial";
+    this.ctx.fillText(
+      `Score: ${this.world.get_point()}`,
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 15,
+    );
+
+    this.ctx.font = "14px Arial";
+    this.ctx.fillText(
+      "Press SPACE to restart",
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 45,
+    );
+
+    // Add event listener for restart
+    document.addEventListener("keydown", this.handleRestart);
+  }
+
+  /**
+   * Display game won message
+   */
+  private displayGameWon(): void {
+    if (!this.ctx || !this.canvas) return;
+
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.fillStyle = "#33ff33";
+    this.ctx.font = "bold 24px Arial";
+    this.ctx.textAlign = "center";
+    this.ctx.fillText(
+      "YOU WIN!",
+      this.canvas.width / 2,
+      this.canvas.height / 2 - 15,
+    );
+
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.font = "16px Arial";
+    this.ctx.fillText(
+      `Score: ${this.world.get_point()}`,
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 15,
+    );
+
+    this.ctx.font = "14px Arial";
+    this.ctx.fillText(
+      "Press SPACE to restart",
+      this.canvas.width / 2,
+      this.canvas.height / 2 + 45,
+    );
+
+    // Add event listener for restart
+    document.addEventListener("keydown", this.handleRestart);
   }
 
   /**
@@ -156,8 +264,14 @@ class CanvasManager {
       config: { CELL_SIZE },
       worldSize,
     } = this;
+
+    // Draw background
+    this.ctx.fillStyle = "#1a1a2e";
+    this.ctx.fillRect(0, 0, worldSize * CELL_SIZE, worldSize * CELL_SIZE);
+
+    // Draw grid lines
     this.ctx.beginPath();
-    this.ctx.strokeStyle = "#ccc";
+    this.ctx.strokeStyle = "rgba(52, 73, 94, 0.5)";
     this.ctx.lineWidth = 1;
 
     for (let line = 0; line <= worldSize; line++) {
@@ -171,6 +285,21 @@ class CanvasManager {
     }
 
     this.ctx.stroke();
+
+    // Draw a subtle pattern for visual interest
+    for (let row = 0; row < worldSize; row++) {
+      for (let col = 0; col < worldSize; col++) {
+        if ((row + col) % 2 === 0) {
+          this.ctx.fillStyle = "rgba(52, 73, 94, 0.1)";
+          this.ctx.fillRect(
+            col * CELL_SIZE,
+            row * CELL_SIZE,
+            CELL_SIZE,
+            CELL_SIZE,
+          );
+        }
+      }
+    }
   }
 
   private drawSnake(): void {
@@ -184,16 +313,99 @@ class CanvasManager {
     for (const [i, cellIdx] of snakeBody.entries()) {
       const col = cellIdx % this.worldSize;
       const row = Math.floor(cellIdx / this.worldSize);
+
+      // Calculate cell position
+      const x = this.config.CELL_SIZE * col;
+      const y = this.config.CELL_SIZE * row;
+      const size = this.config.CELL_SIZE;
+      const padding = 1; // Small gap between cells for a segmented look
+
       this.ctx.beginPath();
-      this.ctx.fillStyle = i ? "#353591" : "#7878db";
-      this.ctx.fillRect(
-        this.config.CELL_SIZE * col,
-        this.config.CELL_SIZE * row,
-        this.config.CELL_SIZE,
-        this.config.CELL_SIZE,
-      );
-      this.ctx.stroke();
+
+      // Snake head
+      if (i === 0) {
+        this.ctx.fillStyle = "#2ecc71";
+        // Create rounded rectangle for head
+        this.roundRect(
+          x + padding,
+          y + padding,
+          size - padding * 2,
+          size - padding * 2,
+          5,
+        );
+        this.ctx.fill();
+
+        // Add eyes
+        const eyeSize = size / 8;
+        this.ctx.fillStyle = "#000";
+
+        // Position eyes based on direction
+        const snakeDirection = this.world.get_direction
+          ? this.world.get_direction()
+          : 1; // Default to right
+
+        // Simplified eye positioning - would be better with actual direction
+        const eyeX1 = x + size / 3;
+        const eyeX2 = x + (size * 2) / 3;
+        const eyeY1 = y + size / 3;
+        const eyeY2 = y + (size * 2) / 3;
+
+        this.ctx.beginPath();
+        this.ctx.arc(eyeX1, eyeY1, eyeSize, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.beginPath();
+        this.ctx.arc(eyeX2, eyeY1, eyeSize, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+      // Snake body
+      else {
+        // Gradient from head color to tail color based on position
+        const gradientPos = i / snakeBody.length;
+        const r = Math.floor(46 + (26 - 46) * gradientPos);
+        const g = Math.floor(204 + (174 - 204) * gradientPos);
+        const b = Math.floor(113 + (159 - 113) * gradientPos);
+
+        this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        this.roundRect(
+          x + padding,
+          y + padding,
+          size - padding * 2,
+          size - padding * 2,
+          3,
+        );
+        this.ctx.fill();
+      }
     }
+  }
+
+  // Helper method to draw rounded rectangles
+  private roundRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+  ): void {
+    if (!this.ctx) return;
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + radius, y);
+    this.ctx.lineTo(x + width - radius, y);
+    this.ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    this.ctx.lineTo(x + width, y + height - radius);
+    this.ctx.arcTo(
+      x + width,
+      y + height,
+      x + width - radius,
+      y + height,
+      radius,
+    );
+    this.ctx.lineTo(x + radius, y + height);
+    this.ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    this.ctx.lineTo(x, y + radius);
+    this.ctx.arcTo(x, y, x + radius, y, radius);
+    this.ctx.closePath();
   }
 
   private drawFood(): void {
@@ -203,15 +415,37 @@ class CanvasManager {
     const col = foodCell % this.worldSize;
     const row = Math.floor(foodCell / this.worldSize);
 
+    const x = this.config.CELL_SIZE * col;
+    const y = this.config.CELL_SIZE * row;
+    const size = this.config.CELL_SIZE;
+
+    // Draw apple shape
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const radius = size / 2 - 2;
+
+    // Apple body (red circle)
     this.ctx.beginPath();
-    this.ctx.fillStyle = "#ff0000"; // Red color for food
-    this.ctx.fillRect(
-      this.config.CELL_SIZE * col,
-      this.config.CELL_SIZE * row,
-      this.config.CELL_SIZE,
-      this.config.CELL_SIZE,
+    this.ctx.fillStyle = "#e74c3c";
+    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Apple highlight
+    this.ctx.beginPath();
+    this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    this.ctx.arc(
+      centerX - radius / 3,
+      centerY - radius / 3,
+      radius / 3,
+      0,
+      Math.PI * 2,
     );
-    this.ctx.stroke();
+    this.ctx.fill();
+
+    // Apple stem
+    this.ctx.beginPath();
+    this.ctx.fillStyle = "#27ae60";
+    this.ctx.fillRect(centerX - 1, y + 2, 2, 4);
   }
 
   private showGamePoints(): void {
@@ -219,6 +453,27 @@ class CanvasManager {
 
     const points = this.world.get_point();
     this.pointsElement.textContent = points.toString();
+
+    // Apply color based on score value
+    if (points >= 10) {
+      this.pointsElement.style.color = "#f39c12"; // Yellow/orange for higher scores
+
+      if (points >= 20) {
+        this.pointsElement.style.color = "#e74c3c"; // Red for very high scores
+
+        if (points >= 30) {
+          this.pointsElement.style.color = "#8e44ad"; // Purple for exceptional scores
+        }
+      }
+    } else {
+      this.pointsElement.style.color = "#e74c3c"; // Default red
+    }
+
+    // Apply pulsing effect on score change
+    this.pointsElement.classList.add("score-pulse");
+    setTimeout(() => {
+      this.pointsElement.classList.remove("score-pulse");
+    }, 300);
   }
 
   /**
@@ -227,6 +482,105 @@ class CanvasManager {
   public stopGame(): void {
     this.isGameRunning = false;
     document.removeEventListener("keydown", this.handleDirectionChange);
+  }
+
+  /**
+   * Handle restart game with spacebar
+   */
+  handleRestart = (event: KeyboardEvent): void => {
+    if (event.code === "Space") {
+      document.removeEventListener("keydown", this.handleRestart);
+      this.resetGame();
+      event.preventDefault();
+    }
+  };
+
+  /**
+   * Handle game start with spacebar
+   */
+  handleGameStart = (event: KeyboardEvent): void => {
+    if (event.code === "Space" && this.world.get_game_state() === 3) {
+      document.removeEventListener("keydown", this.handleGameStart);
+      this.world.game_start();
+      event.preventDefault();
+    }
+  };
+
+  /**
+   * Reset the game to initial state
+   */
+  private resetGame(): void {
+    // Create a new world instance
+    const newSpawnIdx = Math.floor(Math.random() * WORLD_SIZE * WORLD_SIZE);
+    this.world = World.new(this.config.WORLD_SIZE, newSpawnIdx);
+
+    // Restart the game loop
+    this.isGameRunning = true;
+    document.addEventListener("keydown", this.handleDirectionChange);
+    document.addEventListener("keydown", this.handleGameStart);
+    this.startGameLoop();
+  }
+
+  /**
+   * Display start screen with instructions
+   */
+  private displayStartScreen(): void {
+    if (!this.ctx || !this.canvas) return;
+
+    // Add semi-transparent overlay
+    this.ctx.fillStyle = "rgba(26, 26, 46, 0.7)";
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw border
+    this.ctx.strokeStyle = "#3498db";
+    this.ctx.lineWidth = 6;
+    this.ctx.strokeRect(
+      10,
+      10,
+      this.canvas.width - 20,
+      this.canvas.height - 20,
+    );
+
+    // Draw snake icon
+    const centerX = this.canvas.width / 2;
+    const snakeY = this.canvas.height / 2 - 50;
+
+    // Draw snake segments
+    for (let i = 0; i < 5; i++) {
+      this.ctx.fillStyle = i === 0 ? "#2ecc71" : "#27ae60";
+      this.roundRect(centerX - 50 + i * 20, snakeY, 18, 18, 5);
+      this.ctx.fill();
+    }
+
+    // Draw apple
+    this.ctx.beginPath();
+    this.ctx.fillStyle = "#e74c3c";
+    this.ctx.arc(centerX + 60, snakeY + 9, 9, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Title
+    this.ctx.fillStyle = "#ecf0f1";
+    this.ctx.font = 'bold 28px "Segoe UI", sans-serif';
+    this.ctx.textAlign = "center";
+    this.ctx.fillText("SNAKE GAME", centerX, this.canvas.height / 2 + 20);
+
+    // Instructions
+    this.ctx.fillStyle = "#3498db";
+    this.ctx.font = 'bold 20px "Segoe UI", sans-serif';
+    this.ctx.fillText(
+      "Press SPACE to Start",
+      centerX,
+      this.canvas.height / 2 + 60,
+    );
+
+    // Controls
+    this.ctx.fillStyle = "#bdc3c7";
+    this.ctx.font = '14px "Segoe UI", sans-serif';
+    this.ctx.fillText(
+      "Use arrow keys to control the snake",
+      centerX,
+      this.canvas.height / 2 + 90,
+    );
   }
 }
 
