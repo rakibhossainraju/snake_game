@@ -25,7 +25,7 @@ export function createDefaultConfig(): GameConfig {
     SNAKE_SPAWN_IDX: Math.floor(
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
     ),
-    FPS: 6,
+    FPS: 5,
     canvasId: "snake-canvas",
     pointsElementId: "points-count",
   };

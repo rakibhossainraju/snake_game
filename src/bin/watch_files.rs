@@ -11,10 +11,10 @@ fn main() -> Result<()> {
         tx.send(res).unwrap();
     })?;
 
-    let watch_path = Path::new("./src/lib.rs");
-    watcher.watch(watch_path, RecursiveMode::NonRecursive)?;
+    let watch_path = Path::new("./src");
+    watcher.watch(watch_path, RecursiveMode::Recursive)?;
     println!(
-        "Watching {} for changes... (Press Ctrl+C to stop)",
+        "Watching {} for changes (excluding bin directory)... (Press Ctrl+C to stop)",
         watch_path.display()
     );
     println!("initial build...");
@@ -27,6 +27,11 @@ fn main() -> Result<()> {
     for res in rx {
         match res {
             Ok(event) => {
+                // Skip events for files in the bin directory
+                if event.paths.iter().any(|path| is_in_bin_directory(path)) {
+                    continue;
+                }
+
                 // Only process content modification events (file saves)
                 let is_content_change = matches!(
                     event.kind,
@@ -52,6 +57,10 @@ fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn is_in_bin_directory(path: &Path) -> bool {
+    path.to_string_lossy().contains("/src/bin/") || path.to_string_lossy().contains("\\src\\bin\\")
 }
 
 fn run_wasm_pack_build() {

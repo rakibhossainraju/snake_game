@@ -1,9 +1,10 @@
-use crate::{cells::SnakeCell, Direction};
+use crate::{Direction, cells::SnakeCell};
 
 /// Represents the snake with its body segments and movement direction
 pub struct Snake {
     pub body: Vec<SnakeCell>,
     pub direction: Direction,
+    pending_direction: Option<Direction>,
 }
 
 impl Snake {
@@ -13,6 +14,7 @@ impl Snake {
         Snake {
             body,
             direction: Direction::Right,
+            pending_direction: None,
         }
     }
 
@@ -31,24 +33,36 @@ impl Snake {
         self.body.as_ptr()
     }
 
-    /// Changes the snake's direction of movement
+    /// Queue a direction change to be applied on the next movement step
     pub fn change_direction(&mut self, new_direction: Direction) {
-        // Prevent 180° turns (classic snake game rule)
-        let invalid_move = match (&self.direction, &new_direction) {
-            (Direction::Up, Direction::Down) => true,
-            (Direction::Down, Direction::Up) => true,
-            (Direction::Left, Direction::Right) => true,
-            (Direction::Right, Direction::Left) => true,
-            _ => false,
-        };
+        // Store the direction change request for processing during the next movement
+        // This prevents multiple direction changes between movement frames
+        self.pending_direction = Some(new_direction);
+    }
 
-        if !invalid_move {
-            self.direction = new_direction;
+    /// Process any pending direction change and apply it if valid
+    pub fn update_direction(&mut self) {
+        if let Some(new_direction) = self.pending_direction.take() {
+            // Prevent 180° turns (classic snake game rule)
+            let invalid_move = match (&self.direction, &new_direction) {
+                (Direction::Up, Direction::Down) => true,
+                (Direction::Down, Direction::Up) => true,
+                (Direction::Left, Direction::Right) => true,
+                (Direction::Right, Direction::Left) => true,
+                _ => false,
+            };
+
+            if !invalid_move {
+                self.direction = new_direction;
+            }
         }
     }
 
     /// Move the snake in its current direction
     pub fn slither(&mut self, next_cell: SnakeCell) {
+        // Process any pending direction change first
+        self.update_direction();
+
         // Save the current body for updating
         let body = self.body.clone();
 
