@@ -25,6 +25,7 @@ pub enum GameState {
     Playing,
     Won,
     GameOver,
+    Ready,
 }
 
 struct Snake {
@@ -60,7 +61,7 @@ impl World {
             snake: Snake::new(snake_spawn_idx, 3),
             food_cell: None,
             point: 0,
-            state: None,
+            state: Some(GameState::Ready),
         }
     }
 
@@ -81,6 +82,13 @@ impl World {
 
         let body = self.snake.body.clone();
         let next_cell = self.gen_next_cell();
+
+        // Check for collision with own body
+        if body.iter().skip(1).any(|cell| cell.0 == next_cell.0) {
+            self.state = Some(GameState::GameOver);
+            return;
+        }
+
         self.snake.body[0] = next_cell;
 
         for i in 1..body.len() {
@@ -117,7 +125,10 @@ impl World {
     }
 
     pub fn game_start(&mut self) {
-        if self.state.is_none() {
+        if let Some(GameState::Ready) = self.state {
+            self.state = Some(GameState::Playing);
+            self.set_food_idx();
+        } else if self.state.is_none() {
             self.state = Some(GameState::Playing);
             self.set_food_idx();
         }
@@ -133,6 +144,25 @@ impl World {
 
     pub fn get_point(&self) -> usize {
         self.point
+    }
+
+    pub fn get_game_state(&self) -> u8 {
+        match self.state {
+            Some(GameState::Playing) => 0,
+            Some(GameState::Won) => 1,
+            Some(GameState::GameOver) => 2,
+            Some(GameState::Ready) => 3,
+            None => 3, // Default to ready if not set
+        }
+    }
+
+    pub fn get_direction(&self) -> u8 {
+        match self.snake.direction {
+            Direction::Up => 0,
+            Direction::Right => 1,
+            Direction::Down => 2,
+            Direction::Left => 3,
+        }
     }
 
     fn set_food_idx(&mut self) {
