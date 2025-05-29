@@ -42,7 +42,7 @@ class CanvasManager {
   private constructor() {
     this.world = World.new(this.config.WORLD_SIZE, this.config.SNAKE_SPAWN_IDX);
     this.worldSize = this.world.get_width();
-    this.world.set_food_idx();
+    this.world.game_start();
     this.canvas = <HTMLCanvasElement>(
       document.getElementById(this.config.canvasId)
     );
