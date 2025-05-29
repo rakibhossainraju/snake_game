@@ -77,11 +77,12 @@ npm run build
 
 ## 🎮 Game Controls
 
-Use the arrow keys to control the snake's direction:
-- ⬆️ Arrow Up: Move up
-- ⬇️ Arrow Down: Move down
-- ⬅️ Arrow Left: Move left
-- ➡️ Arrow Right: Move right
+- **Space Bar**: Start the game / Restart after game over
+- **Arrow Keys**: Control the snake's direction
+  - ⬆️ Arrow Up: Move up
+  - ⬇️ Arrow Down: Move down
+  - ⬅️ Arrow Left: Move left
+  - ➡️ Arrow Right: Move right
 
 ## 📦 Project Structure
 
@@ -109,11 +110,20 @@ Use the arrow keys to control the snake's direction:
 - **Singleton Pattern**: Used in CanvasManager to ensure only one instance controls the game loop
 - **RequestAnimationFrame**: For smooth browser animations
 
+### Game Features
+
+- Welcome start screen with instructions
+- Food generation and consumption
+- Snake growth mechanics
+- Collision detection
+- Score tracking
+- Game over condition when snake collides with itself
+- Win condition when snake fills the entire grid
+- Restart functionality
+
 ### Future Enhancements
 
-- Add food generation and consumption
-- Implement snake growth mechanics
-- Add collision detection
-- Create score tracking
-- Add game over condition
 - Implement difficulty levels
+- Add high score tracking
+- Create power-ups and special food items
+- Add sounds and visual effects
