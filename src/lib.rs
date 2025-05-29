@@ -73,8 +73,10 @@ impl World {
     }
 
     pub fn step(&mut self) {
-        if self.state.is_none() {
-            return; // game has not started
+        if let Some(GameState::Playing) = self.state {
+            // Continue with game logic
+        } else {
+            return; // Game not started or already finished
         }
 
         let body = self.snake.body.clone();
@@ -138,6 +140,7 @@ impl World {
 
         if self.snake.body.len() >= self.size {
             self.food_cell = None; // No space for food
+            self.state = Some(GameState::Won);
             return;
         }
 
