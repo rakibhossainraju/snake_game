@@ -124,6 +124,17 @@ class CanvasManager {
   };
 
   /**
+   * Handle game start with spacebar
+   */
+  handleGameStart = (event: KeyboardEvent): void => {
+    if (event.code === "Space" && this.world.get_game_state() === 3) {
+      document.removeEventListener("keydown", this.handleGameStart);
+      this.world.game_start();
+      event.preventDefault();
+    }
+  };
+
+  /**
    * Start the game animation loop
    */
   private startGameLoop(): void {
@@ -198,6 +209,18 @@ class CanvasManager {
       this.canvas.height / 2 - 15,
     );
 
+    this.displayScoreAndRestartText();
+
+    // Add event listener for restart
+    document.addEventListener("keydown", this.handleRestart);
+  }
+
+  /**
+   * Display the score and restart text on the canvas
+   */
+  private displayScoreAndRestartText(): void {
+    if (!this.ctx || !this.canvas) return;
+
     this.ctx.fillStyle = "#ffffff";
     this.ctx.font = "16px Arial";
     this.ctx.fillText(
@@ -212,9 +235,6 @@ class CanvasManager {
       this.canvas.width / 2,
       this.canvas.height / 2 + 45,
     );
-
-    // Add event listener for restart
-    document.addEventListener("keydown", this.handleRestart);
   }
 
   /**
@@ -235,20 +255,7 @@ class CanvasManager {
       this.canvas.height / 2 - 15,
     );
 
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.font = "16px Arial";
-    this.ctx.fillText(
-      `Score: ${this.world.get_point()}`,
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 15,
-    );
-
-    this.ctx.font = "14px Arial";
-    this.ctx.fillText(
-      "Press SPACE to restart",
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 45,
-    );
+    this.displayScoreAndRestartText();
 
     // Add event listener for restart
     document.addEventListener("keydown", this.handleRestart);
@@ -344,18 +351,43 @@ class CanvasManager {
           ? this.world.get_direction()
           : 1; // Default to right
 
-        // Simplified eye positioning - would be better with actual direction
-        const eyeX1 = x + size / 3;
-        const eyeX2 = x + (size * 2) / 3;
-        const eyeY1 = y + size / 3;
-        const eyeY2 = y + (size * 2) / 3;
+        // Set eye positions based on direction
+        let eyeX1, eyeX2, eyeY1, eyeY2;
+
+        // 0 = Up, 1 = Right, 2 = Down, 3 = Left
+        switch (snakeDirection) {
+          case 0: // Up
+            eyeX1 = x + size / 3;
+            eyeX2 = x + (size * 2) / 3;
+            eyeY1 = y + size / 3;
+            eyeY2 = y + size / 3;
+            break;
+          case 2: // Down
+            eyeX1 = x + size / 3;
+            eyeX2 = x + (size * 2) / 3;
+            eyeY1 = y + (size * 2) / 3;
+            eyeY2 = y + (size * 2) / 3;
+            break;
+          case 3: // Left
+            eyeX1 = x + size / 3;
+            eyeX2 = x + size / 3;
+            eyeY1 = y + size / 3;
+            eyeY2 = y + (size * 2) / 3;
+            break;
+          case 1: // Right (default)
+          default:
+            eyeX1 = x + (size * 2) / 3;
+            eyeX2 = x + (size * 2) / 3;
+            eyeY1 = y + size / 3;
+            eyeY2 = y + (size * 2) / 3;
+        }
 
         this.ctx.beginPath();
         this.ctx.arc(eyeX1, eyeY1, eyeSize, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.beginPath();
-        this.ctx.arc(eyeX2, eyeY1, eyeSize, 0, Math.PI * 2);
+        this.ctx.arc(eyeX2, eyeY2, eyeSize, 0, Math.PI * 2);
         this.ctx.fill();
       }
       // Snake body
@@ -472,7 +504,7 @@ class CanvasManager {
     // Apply pulsing effect on score change
     this.pointsElement.classList.add("score-pulse");
     setTimeout(() => {
-      this.pointsElement.classList.remove("score-pulse");
+      this.pointsElement?.classList.remove("score-pulse");
     }, 300);
   }
 
@@ -491,17 +523,6 @@ class CanvasManager {
     if (event.code === "Space") {
       document.removeEventListener("keydown", this.handleRestart);
       this.resetGame();
-      event.preventDefault();
-    }
-  };
-
-  /**
-   * Handle game start with spacebar
-   */
-  handleGameStart = (event: KeyboardEvent): void => {
-    if (event.code === "Space" && this.world.get_game_state() === 3) {
-      document.removeEventListener("keydown", this.handleGameStart);
-      this.world.game_start();
       event.preventDefault();
     }
   };
