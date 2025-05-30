@@ -59,7 +59,7 @@ impl World {
     /// Advances the game state by one step
     pub fn step(&mut self) {
         if !self.game_engine.is_playing() {
-            return; // Game not started or already finished
+            return; // Game isn't started or already finished
         }
 
         let next_cell = self.calculate_next_cell();
@@ -130,7 +130,8 @@ impl World {
 
     /// Places food at a random empty position
     fn place_food(&mut self) {
-        if self.snake.len() >= self.size {
+        // The snake has filled the entire grid minus 1 space (which would be the food)
+        if self.snake.len() >= self.size - 1 {
             self.food_cell = None; // No space for food
             self.game_engine.set_state(GameState::Won);
             return;
