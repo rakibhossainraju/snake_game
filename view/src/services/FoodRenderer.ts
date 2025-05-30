@@ -46,9 +46,10 @@ export class FoodRenderer {
     );
     this.ctx.fill();
 
-    // Apple stem
+    // Apple leaf
     this.ctx.beginPath();
-    this.ctx.fillStyle = "#27ae60";
-    this.ctx.fillRect(centerX - 1, y + 2, 2, 4);
+    this.ctx.fillStyle = "#2ecc71";
+    this.ctx.ellipse(centerX + 3, y + 3, 3, 5, Math.PI / 4, 0, Math.PI * 2);
+    this.ctx.fill();
   }
 }
