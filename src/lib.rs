@@ -137,7 +137,7 @@ impl World {
         }
 
         loop {
-            let food_position = random::random_range(0, self.size);
+            let food_position = random::random_range(1, self.size);
             if !self.snake.occupies(food_position) {
                 self.food_cell = Some(food_position);
                 return;
