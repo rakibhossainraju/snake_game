@@ -11,6 +11,14 @@ export class FoodRenderer {
   ) {}
 
   /**
+   * Calculate pulsing scale based on current time
+   */
+  private getPulsingScale(): number {
+    // Use sine wave to create smooth pulsing effect between 0.9 and 1.1
+    return 0.9 + (0.2 * (Math.sin(Date.now() / 500) + 1)) / 2;
+  }
+
+  /**
    * Draw food at the specified cell index
    */
   public drawFood(foodCell: number): void {
@@ -26,13 +34,23 @@ export class FoodRenderer {
     // Draw apple shape
     const centerX = x + size / 2;
     const centerY = y + size / 2;
-    const radius = size / 2 - 2;
+    const scale = this.getPulsingScale();
+    const radius = (size / 2 - 2) * scale;
+
+    // Save the current context state
+    this.ctx.save();
+    this.ctx.translate(centerX, centerY);
+    this.ctx.scale(scale, scale);
+    this.ctx.translate(-centerX, -centerY);
 
     // Apple body (red circle)
     this.ctx.beginPath();
     this.ctx.fillStyle = "#e74c3c";
-    this.ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    this.ctx.arc(centerX, centerY, radius / scale, 0, Math.PI * 2);
     this.ctx.fill();
+
+    // Restore the context to its original state
+    this.ctx.restore();
 
     // Apple highlight
     this.ctx.beginPath();

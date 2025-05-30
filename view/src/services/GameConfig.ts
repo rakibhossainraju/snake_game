@@ -13,7 +13,7 @@ export interface GameConfig {
 /**
  * Default game configuration
  */
-export const DEFAULT_WORLD_SIZE = 10;
+export const DEFAULT_WORLD_SIZE = 8;
 
 /**
  * Creates a default game configuration
