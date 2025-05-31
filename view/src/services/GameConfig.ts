@@ -20,7 +20,7 @@ export const DEFAULT_WORLD_SIZE = 8;
  */
 export function createDefaultConfig(): GameConfig {
   return {
-    CELL_SIZE: 30,
+    CELL_SIZE: 32,
     WORLD_SIZE: DEFAULT_WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
