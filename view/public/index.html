@@ -4,10 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
-    <script type="module" crossorigin src="/assets/index-DNicdbUD.js"></script>
+    <title>Snake Game</title>
+    <script type="module" crossorigin src="/assets/index-DjDWgFLX.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Czxz8C1L.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="content-wrapper">
+      <div class="game-container">
+        <h1 class="game-title">🐍 Snake Game</h1>
+
+        <div class="scoreboard">
+          <div class="score-display">
+            <span class="score-label">Score:</span>
+            <span id="points-count" class="score-value">0</span>
+          </div>
+        </div>
+
+        <canvas id="snake-canvas"></canvas>
+      </div>
+    </div>
   </body>
 </html>
