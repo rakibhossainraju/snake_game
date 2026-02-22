@@ -13,14 +13,14 @@ export interface GameConfig {
 /**
  * Default game configuration
  */
-export const DEFAULT_WORLD_SIZE = 8;
+export const DEFAULT_WORLD_SIZE = 12;
 
 /**
  * Creates a default game configuration
  */
 export function createDefaultConfig(): GameConfig {
   return {
-    CELL_SIZE: 32,
+    CELL_SIZE: 38,
     WORLD_SIZE: DEFAULT_WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,

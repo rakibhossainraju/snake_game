@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "preinstall": "yarn build_wasm",
     "dev": "concurrently \"cargo run\" \"vite\"",
-    "build": "npm run build_wasm && npm run build_js",
+    "build": "yarn build_wasm && yarn build_js",
     "build_wasm": "wasm-pack build --target web",
     "build_js": "tsc && vite build",
     "preview": "vite preview",
