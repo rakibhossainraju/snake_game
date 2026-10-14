@@ -1,4 +1,5 @@
 import { GameConfig } from "./GameConfig";
+import { Palette } from "./Palette";
 
 /**
  * Class responsible for rendering food
@@ -8,66 +9,66 @@ export class FoodRenderer {
     private ctx: CanvasRenderingContext2D,
     private config: GameConfig,
     private worldSize: number,
+    private palette: Palette,
   ) {}
 
   /**
-   * Calculate pulsing scale based on current time
+   * Gentle breathing between 0.95 and 1.05 of the resting size
    */
   private getPulsingScale(): number {
-    // Use sine wave to create smooth pulsing effect between 0.9 and 1.1
-    return 0.9 + (0.2 * (Math.sin(Date.now() / 500) + 1)) / 2;
+    return 1 + 0.05 * Math.sin(Date.now() / 400);
   }
 
   /**
-   * Draw food at the specified cell index
+   * Draw an apple at the specified cell index
    */
   public drawFood(foodCell: number): void {
-    if (!foodCell) return;
-
+    const size = this.config.CELL_SIZE;
     const col = foodCell % this.worldSize;
     const row = Math.floor(foodCell / this.worldSize);
+    const cx = col * size + size / 2;
+    const cy = row * size + size / 2 + size * 0.04;
+    const radius = size * 0.34;
 
-    const x = this.config.CELL_SIZE * col;
-    const y = this.config.CELL_SIZE * row;
-    const size = this.config.CELL_SIZE;
+    const { ctx, palette } = this;
 
-    // Draw apple shape
-    const centerX = x + size / 2;
-    const centerY = y + size / 2;
-    const scale = this.getPulsingScale();
-    const radius = (size / 2 - 2) * scale;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(this.getPulsingScale(), this.getPulsingScale());
 
-    // Save the current context state
-    this.ctx.save();
-    this.ctx.translate(centerX, centerY);
-    this.ctx.scale(scale, scale);
-    this.ctx.translate(-centerX, -centerY);
+    // Resting shadow
+    ctx.fillStyle = palette.shadow;
+    ctx.beginPath();
+    ctx.ellipse(0, radius * 1.05, radius * 0.85, radius * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Apple body (red circle)
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "#e74c3c";
-    this.ctx.arc(centerX, centerY, radius / scale, 0, Math.PI * 2);
-    this.ctx.fill();
+    // Body
+    ctx.fillStyle = palette.food;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Restore the context to its original state
-    this.ctx.restore();
+    // Highlight
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.beginPath();
+    ctx.ellipse(-radius * 0.38, -radius * 0.38, radius * 0.2, radius * 0.3, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Apple highlight
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-    this.ctx.arc(
-      centerX - radius / 3,
-      centerY - radius / 3,
-      radius / 3,
-      0,
-      Math.PI * 2,
-    );
-    this.ctx.fill();
+    // Stem
+    ctx.strokeStyle = palette.ink;
+    ctx.lineWidth = size * 0.05;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, -radius * 0.85);
+    ctx.lineTo(radius * 0.1, -radius * 1.3);
+    ctx.stroke();
 
-    // Apple leaf
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "#2ecc71";
-    this.ctx.ellipse(centerX + 3, y + 3, 3, 5, Math.PI / 4, 0, Math.PI * 2);
-    this.ctx.fill();
+    // Leaf
+    ctx.fillStyle = palette.leaf;
+    ctx.beginPath();
+    ctx.ellipse(radius * 0.45, -radius * 1.2, radius * 0.4, radius * 0.2, -Math.PI / 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 }

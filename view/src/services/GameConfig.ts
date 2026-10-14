@@ -7,7 +7,6 @@ export interface GameConfig {
   readonly SNAKE_SPAWN_IDX: number;
   readonly MOVEMENT_FRAMES: number;
   readonly canvasId: string;
-  readonly pointsElementId: string;
 }
 
 /**
@@ -20,13 +19,12 @@ export const DEFAULT_WORLD_SIZE = 12;
  */
 export function createDefaultConfig(): GameConfig {
   return {
-    CELL_SIZE: 38,
+    CELL_SIZE: 48,
     WORLD_SIZE: DEFAULT_WORLD_SIZE,
     SNAKE_SPAWN_IDX: Math.floor(
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
     ),
     MOVEMENT_FRAMES: 10,
     canvasId: "snake-canvas",
-    pointsElementId: "points-count",
   };
 }

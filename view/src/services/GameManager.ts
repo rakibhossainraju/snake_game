@@ -9,6 +9,7 @@ import { SnakeRenderer } from "./SnakeRenderer";
 import { FoodRenderer } from "./FoodRenderer";
 import { GridRenderer } from "./GridRenderer";
 import { UIRenderer } from "./UIRenderer";
+import { loadPalette } from "./Palette";
 
 /**
  * Main game manager class that coordinates all game components
@@ -21,7 +22,6 @@ export class GameManager {
   private readonly config: GameConfig;
   private readonly canvas: HTMLCanvasElement | null = null;
   private readonly ctx: CanvasRenderingContext2D | null = null;
-  private readonly pointsElement: HTMLSpanElement | null = null;
   private world: World;
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
@@ -42,9 +42,6 @@ export class GameManager {
     this.canvas = document.getElementById(
       this.config.canvasId,
     ) as HTMLCanvasElement;
-    this.pointsElement = document.getElementById(
-      this.config.pointsElementId,
-    ) as HTMLSpanElement;
 
     if (!this.canvas) {
       console.error(
@@ -71,14 +68,26 @@ export class GameManager {
   private initializeRenderers(): void {
     if (!this.ctx || !this.canvas) return;
 
+    const palette = loadPalette();
     this.snakeRenderer = new SnakeRenderer(
       this.ctx,
       this.config,
       this.worldSize,
+      palette,
     );
-    this.foodRenderer = new FoodRenderer(this.ctx, this.config, this.worldSize);
-    this.gridRenderer = new GridRenderer(this.ctx, this.config, this.worldSize);
-    this.uiRenderer = new UIRenderer(this.ctx, this.canvas);
+    this.foodRenderer = new FoodRenderer(
+      this.ctx,
+      this.config,
+      this.worldSize,
+      palette,
+    );
+    this.gridRenderer = new GridRenderer(
+      this.ctx,
+      this.config,
+      this.worldSize,
+      palette,
+    );
+    this.uiRenderer = new UIRenderer(this.activate);
   }
 
   /**
@@ -110,7 +119,7 @@ export class GameManager {
     if (!this.isGameRunning) {
       this.isGameRunning = true;
       document.addEventListener("keydown", this.handleDirectionChange);
-      document.addEventListener("keydown", this.handleGameStart);
+      document.addEventListener("keydown", this.handleActivateKey);
       this.startGameLoop();
     }
   }
@@ -142,16 +151,26 @@ export class GameManager {
   };
 
   /**
-   * Handle game start with spacer
+   * Space starts or restarts the game. When a button has focus, Space
+   * belongs to the button and its click handler does the work.
    */
-  private handleGameStart = (event: KeyboardEvent): void => {
-    if (
-      event.code === "Space" &&
-      this.world.get_game_state() === GameState.Ready
-    ) {
-      document.removeEventListener("keydown", this.handleGameStart);
+  private handleActivateKey = (event: KeyboardEvent): void => {
+    if (event.code !== "Space" || event.target instanceof HTMLButtonElement) {
+      return;
+    }
+    event.preventDefault();
+    this.activate();
+  };
+
+  /**
+   * Start a ready game, or restart a finished one. Shared by the Space
+   * key and the overlay button.
+   */
+  private activate = (): void => {
+    if (this.world.get_game_state() === GameState.Ready) {
       this.world.game_start();
-      event.preventDefault();
+    } else if (!this.isGameRunning) {
+      this.resetGame();
     }
   };
 
@@ -222,7 +241,8 @@ export class GameManager {
       }
 
       // Update score display
-      this.uiRenderer.updateScore(this.pointsElement, this.world.get_point());
+      this.uiRenderer.updateScore(this.world.get_point());
+      if (gameState === GameState.Playing) this.uiRenderer.hideOverlay();
 
       // Check for game over or win conditions
       this.checkGameState();
@@ -255,19 +275,7 @@ export class GameManager {
   public stopGame(): void {
     this.isGameRunning = false;
     document.removeEventListener("keydown", this.handleDirectionChange);
-    document.addEventListener("keydown", this.handleRestart);
   }
-
-  /**
-   * Handle restart game with spacer
-   */
-  private handleRestart = (event: KeyboardEvent): void => {
-    if (event.code === "Space") {
-      document.removeEventListener("keydown", this.handleRestart);
-      this.resetGame();
-      event.preventDefault();
-    }
-  };
 
   /**
    * Reset the game to the initial state
@@ -282,7 +290,6 @@ export class GameManager {
     // Restart the game loop
     this.isGameRunning = true;
     document.addEventListener("keydown", this.handleDirectionChange);
-    document.addEventListener("keydown", this.handleGameStart);
     this.startGameLoop();
   }
 }

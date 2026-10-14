@@ -1,162 +1,101 @@
-import { CanvasUtils } from "./CanvasUtils";
+type OverlayState = "start" | "over" | "won" | null;
+
+const BEST_SCORE_KEY = "snake.best";
 
 /**
- * Class responsible for rendering UI elements
+ * Class responsible for the DOM around the canvas: scores and the
+ * start / game over / win overlay
  */
 export class UIRenderer {
-  constructor(
-    private ctx: CanvasRenderingContext2D,
-    private canvas: HTMLCanvasElement,
-  ) {}
+  private readonly overlay = document.getElementById("overlay")!;
+  private readonly title = document.getElementById("overlay-title")!;
+  private readonly detail = document.getElementById("overlay-detail")!;
+  private readonly action = document.getElementById("overlay-action")!;
+  private readonly scoreEl = document.getElementById("points-count")!;
+  private readonly bestEl = document.getElementById("best-count")!;
 
-  /**
-   * Display game over a message
-   */
-  public displayGameOver(point: number): void {
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  private shown: OverlayState = null;
+  private lastPoints = -1;
+  private best = 0;
+  private bestAtRunStart = 0;
 
-    this.ctx.fillStyle = "#ff3333";
-    this.ctx.font = "bold 24px Arial";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText(
-      "GAME OVER",
-      this.canvas.width / 2,
-      this.canvas.height / 2 - 15,
-    );
+  constructor(onAction: () => void) {
+    this.best = Number(localStorage.getItem(BEST_SCORE_KEY)) || 0;
+    this.bestEl.textContent = this.best.toString();
 
-    this.displayScoreAndRestartText(point);
+    this.action.addEventListener("click", () => {
+      this.action.blur(); // keep Space from re-triggering the button
+      onAction();
+    });
   }
 
-  /**
-   * Display game won message
-   */
-  public displayGameWon(point: number): void {
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    this.ctx.fillStyle = "#33ff33";
-    this.ctx.font = "bold 24px Arial";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText(
-      "YOU WIN!",
-      this.canvas.width / 2,
-      this.canvas.height / 2 - 15,
-    );
-
-    this.displayScoreAndRestartText(point);
-  }
-
-  /**
-   * Display start screen with instructions
-   */
   public displayStartScreen(): void {
-    // Add semi-transparent overlay
-    this.ctx.fillStyle = "rgba(26, 26, 46, 0.7)";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Draw border
-    this.ctx.strokeStyle = "#3498db";
-    this.ctx.lineWidth = 6;
-    this.ctx.strokeRect(
-      10,
-      10,
-      this.canvas.width - 20,
-      this.canvas.height - 20,
+    if (this.shown === "start") return;
+    this.bestAtRunStart = this.best;
+    this.show(
+      "start",
+      "Ready?",
+      "Eat apples to grow. Don't bite your own tail. Cross an edge and you come out the other side.",
+      "Start",
     );
+  }
 
-    // Draw snake icon
-    const centerX = this.canvas.width / 2;
-    const snakeY = this.canvas.height / 2 - 50;
+  public displayGameOver(point: number): void {
+    const newBest = point > this.bestAtRunStart;
+    this.show(
+      "over",
+      "Game over",
+      newBest
+        ? `New best: ${point}.`
+        : `You scored ${point}. Your best is ${this.best}.`,
+      "Play again",
+    );
+  }
 
-    // Draw snake segments
-    for (let i = 0; i < 5; i++) {
-      this.ctx.fillStyle = i === 0 ? "#2ecc71" : "#27ae60";
-      CanvasUtils.roundRect(this.ctx, centerX - 50 + i * 20, snakeY, 18, 18, 5);
-      this.ctx.fill();
+  public displayGameWon(point: number): void {
+    this.show("won", "Board cleared", `A perfect ${point}.`, "Play again");
+  }
+
+  public hideOverlay(): void {
+    if (this.shown === null) return;
+    this.shown = null;
+    this.overlay.hidden = true;
+  }
+
+  /**
+   * Update the score readouts, only touching the DOM when the score changes
+   */
+  public updateScore(points: number): void {
+    if (points === this.lastPoints) return;
+    this.lastPoints = points;
+    this.scoreEl.textContent = points.toString();
+
+    if (points > this.best) {
+      this.best = points;
+      localStorage.setItem(BEST_SCORE_KEY, points.toString());
+      this.bestEl.textContent = points.toString();
     }
 
-    // Draw apple
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "#e74c3c";
-    this.ctx.arc(centerX + 60, snakeY + 9, 9, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    // Title
-    this.ctx.fillStyle = "#ecf0f1";
-    this.ctx.font = 'bold 28px "Segoe UI", sans-serif';
-    this.ctx.textAlign = "center";
-    this.ctx.fillText("SNAKE GAME", centerX, this.canvas.height / 2 + 20);
-
-    // Instructions
-    this.ctx.fillStyle = "#3498db";
-    this.ctx.font = 'bold 20px "Segoe UI", sans-serif';
-    this.ctx.fillText(
-      "Press SPACE to Start",
-      centerX,
-      this.canvas.height / 2 + 60,
-    );
-
-    // Controls
-    this.ctx.fillStyle = "#bdc3c7";
-    this.ctx.font = '14px "Segoe UI", sans-serif';
-    this.ctx.fillText(
-      "Use arrow keys to control the snake",
-      centerX,
-      this.canvas.height / 2 + 90,
-    );
+    if (points > 0) this.bump(this.scoreEl);
   }
 
-  /**
-   * Display the score and restart text on the canvas
-   */
-  private displayScoreAndRestartText(point: number): void {
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.font = "16px Arial";
-    this.ctx.fillText(
-      `Score: ${point}`,
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 15,
-    );
-
-    this.ctx.font = "14px Arial";
-    this.ctx.fillText(
-      "Press SPACE to restart",
-      this.canvas.width / 2,
-      this.canvas.height / 2 + 45,
-    );
-  }
-
-  /**
-   * Update the displayed score
-   */
-  public updateScore(
-    pointsElement: HTMLSpanElement | null,
-    points: number,
+  private show(
+    state: Exclude<OverlayState, null>,
+    title: string,
+    detail: string,
+    actionLabel: string,
   ): void {
-    if (!pointsElement) return;
+    if (this.shown === state) return;
+    this.shown = state;
+    this.title.textContent = title;
+    this.detail.textContent = detail;
+    this.action.textContent = actionLabel;
+    this.overlay.hidden = false;
+  }
 
-    pointsElement.textContent = points.toString();
-
-    // Apply color based on score value
-    if (points >= 10) {
-      pointsElement.style.color = "#f39c12"; // Yellow/orange for higher scores
-
-      if (points >= 20) {
-        pointsElement.style.color = "#e74c3c"; // Red for very high scores
-
-        if (points >= 30) {
-          pointsElement.style.color = "#8e44ad"; // Purple for exceptional scores
-        }
-      }
-    } else {
-      pointsElement.style.color = "#e74c3c"; // Default red
-    }
-
-    // Apply pulsing effect on score change
-    pointsElement.classList.add("score-pulse");
-    setTimeout(() => {
-      pointsElement?.classList.remove("score-pulse");
-    }, 300);
+  private bump(el: HTMLElement): void {
+    el.classList.remove("score-bump");
+    void el.offsetWidth; // restart the animation
+    el.classList.add("score-bump");
   }
 }

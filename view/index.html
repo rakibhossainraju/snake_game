@@ -2,30 +2,54 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="./src/style.css" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./src/style.css" />
     <link
       rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%23b7cfa9%22/><path d=%22M14 44h22a8 8 0 0 0 0-16H26a4 4 0 0 1 0-8h24%22 fill=%22none%22 stroke=%22%233a3f9e%22 stroke-width=%2210%22 stroke-linecap=%22round%22/><circle cx=%2250%22 cy=%2220%22 r=%226%22 fill=%22%23f0592f%22/></svg>"
     />
-    <title>Snake Game</title>
+    <title>Snake</title>
   </head>
   <body>
-    <div id="content-wrapper">
-      <div class="game-container">
-        <h1 class="game-title">🐍 Snake Game</h1>
-
-        <div class="scoreboard">
-          <div class="score-display">
-            <span class="score-label">Score:</span>
-            <span id="points-count" class="score-value">0</span>
+    <main class="app">
+      <header class="hud">
+        <h1 class="wordmark">Snake</h1>
+        <dl class="scores">
+          <div class="score">
+            <dd id="points-count">0</dd>
+            <dt>score</dt>
           </div>
-        </div>
+          <div class="score score-best">
+            <dd id="best-count">0</dd>
+            <dt>best</dt>
+          </div>
+        </dl>
+      </header>
 
-        <canvas id="snake-canvas"></canvas>
+      <div class="board">
+        <canvas
+          id="snake-canvas"
+          role="img"
+          aria-label="Snake game board"
+        ></canvas>
+
+        <div class="overlay" id="overlay" hidden>
+          <h2 id="overlay-title" class="overlay-title"></h2>
+          <p id="overlay-detail" class="overlay-detail"></p>
+          <button id="overlay-action" class="overlay-action" type="button">
+            Start
+          </button>
+        </div>
       </div>
-    </div>
+
+      <p class="controls">
+        <span class="keys" aria-hidden="true">
+          <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
+        </span>
+        <span>to steer</span>
+        <span class="controls-start"><kbd>Space</kbd> to start</span>
+      </p>
+    </main>
     <script type="module" src="./src/bootstrap.ts"></script>
   </body>
 </html>

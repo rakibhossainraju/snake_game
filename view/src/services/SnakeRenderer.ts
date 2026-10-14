@@ -1,15 +1,19 @@
 import { GameConfig } from "./GameConfig";
 import { CanvasUtils } from "./CanvasUtils";
+import { Palette } from "./Palette";
 
-/**
- * Interface for eye positions
- */
-interface EyePositions {
-  eyeX1: number;
-  eyeX2: number;
-  eyeY1: number;
-  eyeY2: number;
+interface Point {
+  x: number;
+  y: number;
 }
+
+// Unit vectors for 0 = Up, 1 = Right, 2 = Down, 3 = Left
+const DIRECTION_VECTORS: readonly Point[] = [
+  { x: 0, y: -1 },
+  { x: 1, y: 0 },
+  { x: 0, y: 1 },
+  { x: -1, y: 0 },
+];
 
 /**
  * Class responsible for rendering the snake
@@ -19,276 +23,139 @@ export class SnakeRenderer {
     private ctx: CanvasRenderingContext2D,
     private config: GameConfig,
     private worldSize: number,
+    private palette: Palette,
   ) {}
 
   /**
-   * Draw the snake on the canvas
+   * Draw the snake: a soft shadow pass first, then the body, then the head
    */
   public drawSnake(
     snakeBody: number[],
     getSnakeDirection: () => number,
     isGameOver: boolean,
   ): void {
-    for (const [i, cellIdx] of snakeBody.entries()) {
-      const col = cellIdx % this.worldSize;
-      const row = Math.floor(cellIdx / this.worldSize);
+    const size = this.config.CELL_SIZE;
+    const cells = snakeBody.map((idx) => ({
+      x: (idx % this.worldSize) * size,
+      y: Math.floor(idx / this.worldSize) * size,
+    }));
 
-      // Calculate cell position
-      const x = this.config.CELL_SIZE * col;
-      const y = this.config.CELL_SIZE * row;
-      const size = this.config.CELL_SIZE;
-      const padding = 1; // Small gap between cells for a segmented look
-
-      this.ctx.beginPath();
-
-      // Snake head
-      if (i === 0) {
-        this.drawSnakeHead(
-          x,
-          y,
-          size,
-          padding,
-          getSnakeDirection(),
-          isGameOver,
-        );
-      }
-      // Snake tail (last segment)
-      else if (i === snakeBody.length - 1) {
-        // Get a direction of tail by looking at the second-to-last and last segments
-        const tailDirection = this.getTailDirection(snakeBody, i);
-
-        // Gradient color for tail
-        const gradientPos = i / snakeBody.length;
-        const r = Math.floor(46 + (26 - 46) * gradientPos);
-        const g = Math.floor(204 + (174 - 204) * gradientPos);
-        const b = Math.floor(113 + (159 - 113) * gradientPos);
-        this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-
-        // Draw the pointed tail based on a direction
-        CanvasUtils.drawPointedTail(
-          this.ctx,
-          x,
-          y,
-          size,
-          padding,
-          tailDirection,
-        );
-      }
-      // Snake body segments (middle segments)
-      else {
-        this.drawSnakeBodySegment(x, y, size, padding, i, snakeBody.length);
-      }
-    }
-  }
-
-  /**
-   * Draw the snake's head
-   */
-  private drawSnakeHead(
-    x: number,
-    y: number,
-    size: number,
-    padding: number,
-    direction: number,
-    isGameOver: boolean,
-  ): void {
-    // Set head color based on game state
-    this.ctx.fillStyle = "#2ecc71"; // Darker red if game over
-
-    // Create a rounded rectangle for the head
-    CanvasUtils.roundRect(
-      this.ctx,
-      x + padding,
-      y + padding,
-      size - padding * 2,
-      size - padding * 2,
-      5,
+    this.paintBody(cells, size * 0.07, () => this.palette.shadow);
+    this.paintBody(cells, 0, (i) =>
+      i === 0
+        ? this.palette.snakeHead
+        : i % 2 === 0
+          ? this.palette.snakeAlt
+          : this.palette.snake,
     );
-    this.ctx.fill();
 
-    // Get eye positions based on a direction
-    const eyePositions = this.getEyePositions(x, y, size, direction);
-    const eyeSize = size / 8;
-
-    // Draw appropriate eyes based on game state
-    if (isGameOver) {
-      this.drawXEyes(eyePositions, eyeSize);
-    } else {
-      this.drawNormalEyes(eyePositions, eyeSize);
+    if (cells.length > 0) {
+      this.drawEyes(cells[0], getSnakeDirection(), isGameOver);
     }
   }
 
   /**
-   * Get eye positions based on a direction
+   * Paint every segment and the bridges that join neighbouring segments,
+   * so the body reads as one continuous shape. Segments that wrap across
+   * the board edge are not bridged.
    */
-  private getEyePositions(
-    x: number,
-    y: number,
-    size: number,
-    direction: number,
-  ): EyePositions {
-    // 0 = Up, 1 = Right, 2 = Down, 3 = Left
-    switch (direction) {
-      case 0: // Up
-        return {
-          eyeX1: x + size / 3,
-          eyeX2: x + (size * 2) / 3,
-          eyeY1: y + size / 3,
-          eyeY2: y + size / 3,
-        };
-      case 2: // Down
-        return {
-          eyeX1: x + size / 3,
-          eyeX2: x + (size * 2) / 3,
-          eyeY1: y + (size * 2) / 3,
-          eyeY2: y + (size * 2) / 3,
-        };
-      case 3: // Left
-        return {
-          eyeX1: x + size / 3,
-          eyeX2: x + size / 3,
-          eyeY1: y + size / 3,
-          eyeY2: y + (size * 2) / 3,
-        };
-      case 1: // Right (default)
-      default:
-        return {
-          eyeX1: x + (size * 2) / 3,
-          eyeX2: x + (size * 2) / 3,
-          eyeY1: y + size / 3,
-          eyeY2: y + (size * 2) / 3,
-        };
+  private paintBody(
+    cells: Point[],
+    offsetY: number,
+    color: (index: number) => string,
+  ): void {
+    const size = this.config.CELL_SIZE;
+    const pad = size * 0.07;
+    const inner = size - pad * 2;
+    const radius = size * 0.28;
+
+    cells.forEach((cell, i) => {
+      this.ctx.fillStyle = color(i);
+      CanvasUtils.roundRect(
+        this.ctx,
+        cell.x + pad,
+        cell.y + pad + offsetY,
+        inner,
+        inner,
+        radius,
+      );
+      this.ctx.fill();
+
+      const next = cells[i + 1];
+      if (!next) return;
+
+      const dx = next.x - cell.x;
+      const dy = next.y - cell.y;
+      if (Math.abs(dx) + Math.abs(dy) !== size) return;
+
+      // Bridge spans from inside one segment to inside the next
+      const left = Math.min(cell.x, next.x);
+      const top = Math.min(cell.y, next.y);
+      this.ctx.fillStyle = color(i + 1);
+      if (dy === 0) {
+        this.ctx.fillRect(
+          left + size - pad - radius,
+          top + pad + offsetY,
+          pad * 2 + radius * 2,
+          inner,
+        );
+      } else {
+        this.ctx.fillRect(
+          left + pad,
+          top + size - pad - radius + offsetY,
+          inner,
+          pad * 2 + radius * 2,
+        );
+      }
+    });
+  }
+
+  /**
+   * Draw the eyes on the head, or crossed-out eyes once the game is over
+   */
+  private drawEyes(head: Point, direction: number, isGameOver: boolean): void {
+    const size = this.config.CELL_SIZE;
+    const forward = DIRECTION_VECTORS[direction] ?? DIRECTION_VECTORS[1];
+    const side = { x: -forward.y, y: forward.x };
+    const cx = head.x + size / 2;
+    const cy = head.y + size / 2;
+    const eyeRadius = size * 0.13;
+
+    for (const sign of [-1, 1]) {
+      const ex = cx + forward.x * size * 0.18 + side.x * size * 0.2 * sign;
+      const ey = cy + forward.y * size * 0.18 + side.y * size * 0.2 * sign;
+
+      if (isGameOver) {
+        this.drawCross(ex, ey, eyeRadius * 0.8);
+        continue;
+      }
+
+      this.ctx.fillStyle = "#ffffff";
+      this.drawCircle(ex, ey, eyeRadius);
+      this.ctx.fillStyle = this.palette.ink;
+      this.drawCircle(
+        ex + forward.x * eyeRadius * 0.35,
+        ey + forward.y * eyeRadius * 0.35,
+        eyeRadius * 0.55,
+      );
     }
   }
 
-  /**
-   * Draw X-shaped eyes when the game is over
-   */
-  private drawXEyes(positions: EyePositions, eyeSize: number): void {
-    const { eyeX1, eyeX2, eyeY1, eyeY2 } = positions;
-
-    // Use red for game over X-eyes
-    this.ctx.strokeStyle = "#ff0000";
-    this.ctx.lineWidth = 2;
-
-    // Draw X for the first eye
-    this.drawXShape(eyeX1, eyeY1, eyeSize);
-
-    // Draw X for the second eye
-    this.drawXShape(eyeX2, eyeY2, eyeSize);
-  }
-
-  /**
-   * Draw a single X shape
-   */
-  private drawXShape(x: number, y: number, size: number): void {
+  private drawCross(x: number, y: number, arm: number): void {
+    this.ctx.strokeStyle = "#ffffff";
+    this.ctx.lineWidth = this.config.CELL_SIZE * 0.05;
+    this.ctx.lineCap = "round";
     this.ctx.beginPath();
-    this.ctx.moveTo(x - size, y - size);
-    this.ctx.lineTo(x + size, y + size);
-    this.ctx.moveTo(x + size, y - size);
-    this.ctx.lineTo(x - size, y + size);
+    this.ctx.moveTo(x - arm, y - arm);
+    this.ctx.lineTo(x + arm, y + arm);
+    this.ctx.moveTo(x + arm, y - arm);
+    this.ctx.lineTo(x - arm, y + arm);
     this.ctx.stroke();
   }
 
-  /**
-   * Draw normal circular eyes
-   */
-  private drawNormalEyes(positions: EyePositions, eyeSize: number): void {
-    const { eyeX1, eyeX2, eyeY1, eyeY2 } = positions;
-
-    this.ctx.fillStyle = "#000";
-
-    // Draw first eye
-    this.drawCircle(eyeX1, eyeY1, eyeSize);
-
-    // Draw a second eye
-    this.drawCircle(eyeX2, eyeY2, eyeSize);
-  }
-
-  /**
-   * Draw a circle with the given parameters
-   */
   private drawCircle(x: number, y: number, radius: number): void {
     this.ctx.beginPath();
     this.ctx.arc(x, y, radius, 0, Math.PI * 2);
     this.ctx.fill();
-  }
-
-  /**
-   * Draw a snake body segment
-   */
-  private drawSnakeBodySegment(
-    x: number,
-    y: number,
-    size: number,
-    padding: number,
-    segmentIndex: number,
-    totalSegments: number,
-  ): void {
-    // Gradient from head color to tail color based on position
-    const gradientPos = segmentIndex / totalSegments;
-    const r = Math.floor(46 + (26 - 46) * gradientPos);
-    const g = Math.floor(204 + (174 - 204) * gradientPos);
-    const b = Math.floor(113 + (159 - 113) * gradientPos);
-
-    this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-    CanvasUtils.roundRect(
-      this.ctx,
-      x + padding,
-      y + padding,
-      size - padding * 2,
-      size - padding * 2,
-      3,
-    );
-    this.ctx.fill();
-  }
-
-  /**
-   * Determine the direction of the snake's tail by comparing the last two segments
-   */
-  private getTailDirection(snakeBody: number[], tailIndex: number): number {
-    if (tailIndex < 1 || tailIndex >= snakeBody.length) return 0;
-
-    const lastCell = snakeBody[tailIndex];
-    const secondLastCell = snakeBody[tailIndex - 1];
-
-    return this.calculateDirection(
-      lastCell % this.worldSize,
-      Math.floor(lastCell / this.worldSize),
-      secondLastCell % this.worldSize,
-      Math.floor(secondLastCell / this.worldSize),
-    );
-  }
-
-  /**
-   * Calculate a direction based on position difference
-   * @param col1 First column position
-   * @param row1 First row position
-   * @param col2 Second column position
-   * @param row2 Second row position
-   * @returns Direction as a number (0=Up, 1=Right, 2=Down, 3=Left)
-   */
-  private calculateDirection(
-    col1: number,
-    row1: number,
-    col2: number,
-    row2: number,
-  ): number {
-    // Handling wrapping around the grid edges
-    if (Math.abs(col1 - col2) > 1) {
-      // Wrapped horizontally
-      return col1 > col2 ? 3 : 1; // Left or Right
-    } else if (Math.abs(row1 - row2) > 1) {
-      // Wrapped vertically
-      return row1 > row2 ? 0 : 2; // Up or Down
-    } else {
-      // Normal case, no wrapping
-      if (col1 < col2) return 3; // Points Left
-      if (col1 > col2) return 1; // Points Right
-      if (row1 < row2) return 0; // Points Up
-      if (row1 > row2) return 2; // Points Down
-    }
-
-    return 0; // Default Up
   }
 }
