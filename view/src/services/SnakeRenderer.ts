@@ -1,5 +1,4 @@
 import { GameConfig } from "./GameConfig";
-import { CanvasUtils } from "./CanvasUtils";
 import { Palette } from "./Palette";
 
 interface Point {
@@ -7,16 +6,14 @@ interface Point {
   y: number;
 }
 
-// Unit vectors for 0 = Up, 1 = Right, 2 = Down, 3 = Left
-const DIRECTION_VECTORS: readonly Point[] = [
-  { x: 0, y: -1 },
-  { x: 1, y: 0 },
-  { x: 0, y: 1 },
-  { x: -1, y: 0 },
-];
-
 /**
- * Class responsible for rendering the snake
+ * Class responsible for rendering the snake as a smooth, tapering tube.
+ *
+ * The game logic moves the snake one cell per step. To animate between
+ * steps, each segment slides from where it was in the previous body to
+ * where it is in the current one. Segments are unwrapped into one
+ * continuous chain, so a snake crossing a board edge is drawn on both
+ * sides at once.
  */
 export class SnakeRenderer {
   constructor(
@@ -27,103 +24,142 @@ export class SnakeRenderer {
   ) {}
 
   /**
-   * Draw the snake: a soft shadow pass first, then the body, then the head
+   * @param previous body before the latest step
+   * @param current body after the latest step
+   * @param t progress through the step, 0 to 1
+   * @param fallbackDirection used for the eyes when the snake has no neck yet
    */
   public drawSnake(
-    snakeBody: number[],
-    getSnakeDirection: () => number,
+    previous: number[],
+    current: number[],
+    t: number,
+    fallbackDirection: number,
     isGameOver: boolean,
   ): void {
+    const chain = this.buildChain(previous, current, t);
+    if (chain.length === 0) return;
+
     const size = this.config.CELL_SIZE;
-    const cells = snakeBody.map((idx) => ({
-      x: (idx % this.worldSize) * size,
-      y: Math.floor(idx / this.worldSize) * size,
-    }));
+    const boardPx = this.worldSize * size;
+    const xs = chain.map((p) => p.x);
+    const ys = chain.map((p) => p.y);
+    const offsets = (values: number[]): number[] =>
+      [-boardPx, 0, boardPx].filter(
+        (o) =>
+          Math.max(...values) + size + o > 0 &&
+          Math.min(...values) - size + o < boardPx,
+      );
+    const xOffsets = offsets(xs);
+    const yOffsets = offsets(ys);
 
-    this.paintBody(cells, size * 0.07, () => this.palette.shadow);
-    this.paintBody(cells, 0, (i) =>
-      i === 0
-        ? this.palette.snakeHead
-        : i % 2 === 0
-          ? this.palette.snakeAlt
-          : this.palette.snake,
-    );
+    const passes: Array<() => void> = [];
+    passes.push(() => this.strokeChain(chain, 0.84, size * 0.07, this.palette.shadow));
+    passes.push(() => this.strokeChain(chain, 0.84, 0, this.palette.snake));
+    passes.push(() => this.strokeChain(chain, 0.28, -size * 0.1, this.palette.snakeAlt));
+    passes.push(() => this.drawHead(chain, fallbackDirection, isGameOver));
 
-    if (cells.length > 0) {
-      this.drawEyes(cells[0], getSnakeDirection(), isGameOver);
+    for (const pass of passes) {
+      for (const ox of xOffsets) {
+        for (const oy of yOffsets) {
+          this.ctx.save();
+          this.ctx.translate(ox, oy);
+          pass();
+          this.ctx.restore();
+        }
+      }
     }
   }
 
   /**
-   * Paint every segment and the bridges that join neighbouring segments,
-   * so the body reads as one continuous shape. Segments that wrap across
-   * the board edge are not bridged.
+   * Interpolate every segment between its previous and current cell, then
+   * unwrap the result so neighbouring points are never a board apart.
    */
-  private paintBody(
-    cells: Point[],
-    offsetY: number,
-    color: (index: number) => string,
-  ): void {
+  private buildChain(previous: number[], current: number[], t: number): Point[] {
     const size = this.config.CELL_SIZE;
-    const pad = size * 0.07;
-    const inner = size - pad * 2;
-    const radius = size * 0.28;
-
-    cells.forEach((cell, i) => {
-      this.ctx.fillStyle = color(i);
-      CanvasUtils.roundRect(
-        this.ctx,
-        cell.x + pad,
-        cell.y + pad + offsetY,
-        inner,
-        inner,
-        radius,
-      );
-      this.ctx.fill();
-
-      const next = cells[i + 1];
-      if (!next) return;
-
-      const dx = next.x - cell.x;
-      const dy = next.y - cell.y;
-      if (Math.abs(dx) + Math.abs(dy) !== size) return;
-
-      // Bridge spans from inside one segment to inside the next
-      const left = Math.min(cell.x, next.x);
-      const top = Math.min(cell.y, next.y);
-      this.ctx.fillStyle = color(i + 1);
-      if (dy === 0) {
-        this.ctx.fillRect(
-          left + size - pad - radius,
-          top + pad + offsetY,
-          pad * 2 + radius * 2,
-          inner,
-        );
-      } else {
-        this.ctx.fillRect(
-          left + pad,
-          top + size - pad - radius + offsetY,
-          inner,
-          pad * 2 + radius * 2,
-        );
-      }
+    const boardPx = this.worldSize * size;
+    const toXY = (idx: number): Point => ({
+      x: (idx % this.worldSize) * size,
+      y: Math.floor(idx / this.worldSize) * size,
     });
+    const shortest = (d: number): number =>
+      d > boardPx / 2 ? d - boardPx : d < -boardPx / 2 ? d + boardPx : d;
+    const unwrap = (v: number, ref: number): number => {
+      while (v - ref > boardPx / 2) v -= boardPx;
+      while (v - ref < -boardPx / 2) v += boardPx;
+      return v;
+    };
+
+    const chain: Point[] = [];
+    current.forEach((idx, j) => {
+      const to = toXY(idx);
+      const from = j < previous.length ? toXY(previous[j]) : to;
+      let x = from.x + shortest(to.x - from.x) * t + size / 2;
+      let y = from.y + shortest(to.y - from.y) * t + size / 2;
+      if (j > 0) {
+        x = unwrap(x, chain[j - 1].x);
+        y = unwrap(y, chain[j - 1].y);
+      }
+      chain.push({ x, y });
+    });
+    return chain;
   }
 
   /**
-   * Draw the eyes on the head, or crossed-out eyes once the game is over
+   * Stroke the chain segment by segment, narrowing toward the tail.
+   * `thickness` is a fraction of a cell at the head.
    */
-  private drawEyes(head: Point, direction: number, isGameOver: boolean): void {
+  private strokeChain(
+    chain: Point[],
+    thickness: number,
+    offsetY: number,
+    color: string,
+  ): void {
     const size = this.config.CELL_SIZE;
-    const forward = DIRECTION_VECTORS[direction] ?? DIRECTION_VECTORS[1];
-    const side = { x: -forward.y, y: forward.x };
-    const cx = head.x + size / 2;
-    const cy = head.y + size / 2;
-    const eyeRadius = size * 0.13;
+    const last = Math.max(chain.length - 1, 1);
 
+    this.ctx.strokeStyle = color;
+    this.ctx.lineCap = "round";
+    for (let j = 0; j < chain.length - 1; j++) {
+      const taper = 1 - 0.4 * ((j + 0.5) / last);
+      this.ctx.lineWidth = size * thickness * taper;
+      this.ctx.beginPath();
+      this.ctx.moveTo(chain[j].x, chain[j].y + offsetY);
+      this.ctx.lineTo(chain[j + 1].x, chain[j + 1].y + offsetY);
+      this.ctx.stroke();
+    }
+
+    // A lone head has no segments to stroke
+    if (chain.length === 1) {
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.arc(chain[0].x, chain[0].y + offsetY, (size * thickness) / 2, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+  }
+
+  private drawHead(chain: Point[], fallbackDirection: number, isGameOver: boolean): void {
+    const size = this.config.CELL_SIZE;
+    const head = chain[0];
+    const forward = this.headDirection(chain, fallbackDirection);
+    const side = { x: -forward.y, y: forward.x };
+
+    this.ctx.fillStyle = this.palette.snakeHead;
+    this.ctx.beginPath();
+    this.ctx.ellipse(
+      head.x,
+      head.y,
+      size * 0.5,
+      size * 0.45,
+      Math.atan2(forward.y, forward.x),
+      0,
+      Math.PI * 2,
+    );
+    this.ctx.fill();
+
+    const eyeRadius = size * 0.13;
     for (const sign of [-1, 1]) {
-      const ex = cx + forward.x * size * 0.18 + side.x * size * 0.2 * sign;
-      const ey = cy + forward.y * size * 0.18 + side.y * size * 0.2 * sign;
+      const ex = head.x + forward.x * size * 0.16 + side.x * size * 0.2 * sign;
+      const ey = head.y + forward.y * size * 0.16 + side.y * size * 0.2 * sign;
 
       if (isGameOver) {
         this.drawCross(ex, ey, eyeRadius * 0.8);
@@ -139,6 +175,29 @@ export class SnakeRenderer {
         eyeRadius * 0.55,
       );
     }
+  }
+
+  /**
+   * Unit vector the head is travelling in, taken from the neck so the eyes
+   * follow the motion. 0 = Up, 1 = Right, 2 = Down, 3 = Left for the fallback.
+   */
+  private headDirection(chain: Point[], fallbackDirection: number): Point {
+    if (chain.length > 1) {
+      const dx = chain[0].x - chain[1].x;
+      const dy = chain[0].y - chain[1].y;
+      if (dx !== 0 || dy !== 0) {
+        return Math.abs(dx) > Math.abs(dy)
+          ? { x: Math.sign(dx), y: 0 }
+          : { x: 0, y: Math.sign(dy) };
+      }
+    }
+    const fallback: Point[] = [
+      { x: 0, y: -1 },
+      { x: 1, y: 0 },
+      { x: 0, y: 1 },
+      { x: -1, y: 0 },
+    ];
+    return fallback[fallbackDirection] ?? fallback[1];
   }
 
   private drawCross(x: number, y: number, arm: number): void {

@@ -81,8 +81,10 @@ impl Snake {
         }
     }
 
-    /// Move the snake in its current direction
-    pub fn slither(&mut self, next_cell: SnakeCell) {
+    /// Move the snake in its current direction.
+    /// Returns the cell its tail just left, which is where a new segment
+    /// goes if the snake grows this step.
+    pub fn slither(&mut self, next_cell: SnakeCell) -> usize {
         // Process any pending direction change first
         self.update_direction();
 
@@ -96,14 +98,14 @@ impl Snake {
         for i in 1..body.len() {
             self.body[i] = SnakeCell(body[i - 1].0);
         }
+
+        body[body.len() - 1].0
     }
 
-    /// Add a new segment to the snake's body
-    pub fn grow(&mut self) {
-        // Use the second-to-last segment position as reference
-        if self.body.len() >= 2 {
-            self.body.push(SnakeCell(self.body[1].0));
-        }
+    /// Add a new segment to the end of the snake's body, in the cell the
+    /// tail just vacated
+    pub fn grow(&mut self, tail_cell: usize) {
+        self.body.push(SnakeCell(tail_cell));
     }
 
     /// Check if the snake would collide with itself at the given position
@@ -125,5 +127,20 @@ impl Snake {
     /// Check if the snake occupies a specific position
     pub fn occupies(&self, position: usize) -> bool {
         self.body.iter().any(|cell| cell.0 == position)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grow_adds_segment_where_the_tail_was() {
+        let mut snake = Snake::new(10, 3); // cells 10, 9, 8
+        let vacated = snake.slither(SnakeCell(11));
+        snake.grow(vacated);
+
+        let cells: Vec<usize> = snake.body.iter().map(|c| c.0).collect();
+        assert_eq!(cells, vec![11, 10, 9, 8]);
     }
 }

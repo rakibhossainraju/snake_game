@@ -71,12 +71,12 @@ impl World {
         }
 
         // Move the snake
-        self.snake.slither(next_cell);
+        let vacated_tail = self.snake.slither(next_cell);
 
         // Check for food consumption
         if let Some(food_idx) = self.food_cell {
             if self.snake.head_idx() == food_idx {
-                self.snake.grow();
+                self.snake.grow(vacated_tail);
                 self.place_food();
                 self.points += 1;
             }

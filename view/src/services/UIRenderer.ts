@@ -7,6 +7,7 @@ const BEST_SCORE_KEY = "snake.best";
  * start / game over / win overlay
  */
 export class UIRenderer {
+  private readonly board = document.querySelector<HTMLElement>(".board")!;
   private readonly overlay = document.getElementById("overlay")!;
   private readonly title = document.getElementById("overlay-title")!;
   private readonly detail = document.getElementById("overlay-detail")!;
@@ -91,6 +92,13 @@ export class UIRenderer {
     this.detail.textContent = detail;
     this.action.textContent = actionLabel;
     this.overlay.hidden = false;
+    if (state === "over") this.shake();
+  }
+
+  private shake(): void {
+    this.board.classList.remove("shake");
+    void this.board.offsetWidth; // restart the animation
+    this.board.classList.add("shake");
   }
 
   private bump(el: HTMLElement): void {

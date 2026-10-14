@@ -42,13 +42,19 @@
         </div>
       </div>
 
-      <p class="controls">
-        <span class="keys" aria-hidden="true">
-          <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
-        </span>
-        <span>to steer</span>
-        <span class="controls-start"><kbd>Space</kbd> to start</span>
-      </p>
+      <div class="controls">
+        <p class="hint hint-keys">
+          <span class="keys" aria-hidden="true">
+            <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
+          </span>
+          <span>to steer</span>
+          <span class="controls-start"><kbd>Space</kbd> to start</span>
+        </p>
+        <p class="hint hint-touch">Swipe on the board to steer</p>
+        <button id="sound-toggle" class="sound-toggle" type="button">
+          Sound on
+        </button>
+      </div>
     </main>
     <script type="module" src="./src/bootstrap.ts"></script>
   </body>

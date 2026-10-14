@@ -9,7 +9,13 @@ import { SnakeRenderer } from "./SnakeRenderer";
 import { FoodRenderer } from "./FoodRenderer";
 import { GridRenderer } from "./GridRenderer";
 import { UIRenderer } from "./UIRenderer";
+import { EffectsRenderer } from "./EffectsRenderer";
+import { SoundManager } from "./SoundManager";
 import { loadPalette } from "./Palette";
+
+// How far through a step the snake is when it reaches the apple it ate
+const EAT_PROGRESS = 0.6;
+const SWIPE_THRESHOLD_PX = 24;
 
 /**
  * Main game manager class that coordinates all game components
@@ -25,13 +31,23 @@ export class GameManager {
   private world: World;
   private readonly worldSize: number;
   private isGameRunning: boolean = false;
-  private frameCount: number = 0;
+
+  // Timing and animation state
+  private lastStepAt = 0;
+  private lastFrameAt = 0;
+  private previousBody: number[] = [];
+  private currentBody: number[] = [];
+  private lastPoints = 0;
+  private lastFoodCell: number | undefined;
+  private eating: { cell: number; startedAt: number } | null = null;
 
   // Rendering components
   private snakeRenderer: SnakeRenderer | null = null;
   private foodRenderer: FoodRenderer | null = null;
   private gridRenderer: GridRenderer | null = null;
   private uiRenderer: UIRenderer | null = null;
+  private effectsRenderer: EffectsRenderer | null = null;
+  private sound: SoundManager | null = null;
 
   private constructor() {
     this.config = createDefaultConfig();
@@ -69,25 +85,13 @@ export class GameManager {
     if (!this.ctx || !this.canvas) return;
 
     const palette = loadPalette();
-    this.snakeRenderer = new SnakeRenderer(
-      this.ctx,
-      this.config,
-      this.worldSize,
-      palette,
-    );
-    this.foodRenderer = new FoodRenderer(
-      this.ctx,
-      this.config,
-      this.worldSize,
-      palette,
-    );
-    this.gridRenderer = new GridRenderer(
-      this.ctx,
-      this.config,
-      this.worldSize,
-      palette,
-    );
+    const args = [this.ctx, this.config, this.worldSize, palette] as const;
+    this.snakeRenderer = new SnakeRenderer(...args);
+    this.foodRenderer = new FoodRenderer(...args);
+    this.gridRenderer = new GridRenderer(...args);
+    this.effectsRenderer = new EffectsRenderer(...args);
     this.uiRenderer = new UIRenderer(this.activate);
+    this.sound = new SoundManager();
   }
 
   /**
@@ -118,8 +122,10 @@ export class GameManager {
 
     if (!this.isGameRunning) {
       this.isGameRunning = true;
+      this.syncBodies();
       document.addEventListener("keydown", this.handleDirectionChange);
       document.addEventListener("keydown", this.handleActivateKey);
+      this.attachSwipeControls();
       this.startGameLoop();
     }
   }
@@ -151,6 +157,44 @@ export class GameManager {
   };
 
   /**
+   * Steer by swiping on the board. Touch and pen only, so mouse drags
+   * do nothing. The swipe origin resets after each turn, so a player can
+   * chain turns without lifting their finger.
+   */
+  private attachSwipeControls(): void {
+    const board = document.querySelector<HTMLElement>(".board");
+    if (!board) return;
+
+    let origin: { x: number; y: number } | null = null;
+
+    board.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse") return;
+      if (event.target instanceof HTMLButtonElement) return;
+      origin = { x: event.clientX, y: event.clientY };
+    });
+
+    board.addEventListener("pointermove", (event) => {
+      if (!origin) return;
+      const dx = event.clientX - origin.x;
+      const dy = event.clientY - origin.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_THRESHOLD_PX) return;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        this.world.change_direction(dx > 0 ? Direction.Right : Direction.Left);
+      } else {
+        this.world.change_direction(dy > 0 ? Direction.Down : Direction.Up);
+      }
+      origin = { x: event.clientX, y: event.clientY };
+    });
+
+    const end = (): void => {
+      origin = null;
+    };
+    board.addEventListener("pointerup", end);
+    board.addEventListener("pointercancel", end);
+  }
+
+  /**
    * Space starts or restarts the game. When a button has focus, Space
    * belongs to the button and its click handler does the work.
    */
@@ -167,84 +211,146 @@ export class GameManager {
    * key and the overlay button.
    */
   private activate = (): void => {
+    this.sound?.unlock();
+
     if (this.world.get_game_state() === GameState.Ready) {
       this.world.game_start();
+      this.lastStepAt = performance.now();
+      this.sound?.start();
     } else if (!this.isGameRunning) {
       this.resetGame();
     }
   };
 
   /**
+   * Time between steps for the current score. Each apple shaves a
+   * little off, easing toward the minimum rather than jumping.
+   */
+  private getStepMs(): number {
+    const { START_STEP_MS, MIN_STEP_MS, SPEEDUP_PER_POINT } = this.config;
+    return Math.max(
+      MIN_STEP_MS,
+      START_STEP_MS * Math.pow(SPEEDUP_PER_POINT, this.world.get_point()),
+    );
+  }
+
+  /**
+   * Read the snake's current cells and reset the animation to rest there
+   */
+  private syncBodies(): void {
+    if (!this.getSnakeBody) return;
+    this.currentBody = this.readBody();
+    this.previousBody = this.currentBody;
+  }
+
+  private readBody(): number[] {
+    return this.getSnakeBody
+      ? this.getSnakeBody(
+          this.world.get_first_cell_ptr(),
+          this.world.get_snake_len(),
+        )
+      : [];
+  }
+
+  /**
    * Start the game animation loop
    */
   private startGameLoop(): void {
-    requestAnimationFrame(() => {
-      if (!this.ctx || !this.canvas || !this.isGameRunning) return;
+    requestAnimationFrame(this.tick);
+  }
 
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.renderFrame();
+  private tick = (now: number): void => {
+    if (!this.ctx || !this.canvas || !this.isGameRunning) return;
 
-      // Only move the snake every N frames for smooth movement
-      // while still accepting input every frame
-      if (this.world.get_game_state() === GameState.Playing) {
-        this.frameCount++;
-        if (this.frameCount >= this.config.MOVEMENT_FRAMES) {
-          this.world.step();
-          this.frameCount = 0;
-        }
-      }
+    const dt = Math.min((now - this.lastFrameAt) / 1000, 0.05);
+    this.lastFrameAt = now;
 
-      // Continue the game loop
-      this.startGameLoop();
-    });
+    this.advance(now);
+    this.renderFrame(now, dt);
+    this.startGameLoop();
+  };
+
+  /**
+   * Step the game when enough time has passed. Input is read every frame,
+   * but the snake only moves once per step.
+   */
+  private advance(now: number): void {
+    if (this.world.get_game_state() !== GameState.Playing) return;
+
+    const stepMs = this.getStepMs();
+    if (now - this.lastStepAt < stepMs) return;
+
+    this.previousBody = this.currentBody;
+    this.world.step();
+    this.currentBody = this.readBody();
+
+    // Keep a steady rhythm, but don't try to catch up after a hidden tab
+    this.lastStepAt += stepMs;
+    if (now - this.lastStepAt > stepMs) this.lastStepAt = now;
   }
 
   /**
    * Render a single frame of the game
    */
-  private renderFrame(): void {
+  private renderFrame(now: number, dt: number): void {
     if (
+      !this.ctx ||
       !this.gridRenderer ||
       !this.snakeRenderer ||
       !this.foodRenderer ||
+      !this.effectsRenderer ||
       !this.uiRenderer ||
       !this.getSnakeBody
     )
       return;
 
-    // Draw the grid first
+    this.ctx.clearRect(0, 0, this.canvas!.width, this.canvas!.height);
     this.gridRenderer.drawGrid();
 
-    // Check game state
     const gameState = this.world.get_game_state();
+    const points = this.world.get_point();
+    const foodCell = this.world.get_food_idx();
+
+    // An apple was eaten this step: keep drawing it until the head reaches it
+    if (points > this.lastPoints && this.lastFoodCell !== undefined) {
+      this.eating = { cell: this.lastFoodCell, startedAt: this.lastStepAt };
+    }
+    this.lastPoints = points;
+    this.lastFoodCell = foodCell;
+
+    if (this.eating) {
+      const progress = (now - this.eating.startedAt) / this.getStepMs();
+      if (progress >= EAT_PROGRESS || gameState !== GameState.Playing) {
+        this.effectsRenderer.burst(this.eating.cell);
+        this.sound?.eat();
+        this.eating = null;
+      } else {
+        this.foodRenderer.drawFoodAt(this.eating.cell, 1, now);
+      }
+    }
+
+    if (foodCell) this.foodRenderer.drawFood(foodCell, now);
+
+    const progress =
+      gameState === GameState.Playing
+        ? Math.min(Math.max((now - this.lastStepAt) / this.getStepMs(), 0), 1)
+        : 1;
+    this.snakeRenderer.drawSnake(
+      this.previousBody,
+      this.currentBody,
+      progress,
+      this.world.get_direction(),
+      gameState === GameState.GameOver,
+    );
+
+    this.effectsRenderer.draw(dt);
+    this.uiRenderer.updateScore(points);
 
     if (gameState === GameState.Ready) {
-      // Ready state - show start screen
       this.uiRenderer.displayStartScreen();
+    } else if (gameState === GameState.Playing) {
+      this.uiRenderer.hideOverlay();
     } else {
-      // Game is in progress, over, or won
-      // Draw snake and food
-      const snakeBody = this.getSnakeBody(
-        this.world.get_first_cell_ptr(),
-        this.world.get_snake_len(),
-      );
-
-      this.snakeRenderer.drawSnake(
-        snakeBody,
-        () => this.world.get_direction(),
-        gameState === GameState.GameOver,
-      );
-
-      const foodCell = this.world.get_food_idx();
-      if (foodCell) {
-        this.foodRenderer.drawFood(foodCell);
-      }
-
-      // Update score display
-      this.uiRenderer.updateScore(this.world.get_point());
-      if (gameState === GameState.Playing) this.uiRenderer.hideOverlay();
-
-      // Check for game over or win conditions
       this.checkGameState();
     }
   }
@@ -259,12 +365,12 @@ export class GameManager {
     const points = this.world.get_point();
 
     if (gameState === GameState.GameOver) {
-      // Game Over
       this.uiRenderer.displayGameOver(points);
+      this.sound?.gameOver();
       this.stopGame();
     } else if (gameState === GameState.Won) {
-      // Won
       this.uiRenderer.displayGameWon(points);
+      this.sound?.win();
       this.stopGame();
     }
   }
@@ -286,6 +392,10 @@ export class GameManager {
       Math.random() * DEFAULT_WORLD_SIZE * DEFAULT_WORLD_SIZE,
     );
     this.world = World.new(this.config.WORLD_SIZE, newSpawnIdx);
+    this.lastPoints = 0;
+    this.lastFoodCell = undefined;
+    this.eating = null;
+    this.syncBodies();
 
     // Restart the game loop
     this.isGameRunning = true;
