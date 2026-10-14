@@ -21,7 +21,10 @@
     
     /* Importing Rust WASM */
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "snake_game": ["./pkg/snake_game"]
+    }
   },
   "include": ["view/src/**/*.ts", "view/src/**/*.d.ts"],
   "exclude": [

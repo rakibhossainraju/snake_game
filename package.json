@@ -4,22 +4,22 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "preinstall": "yarn build_wasm",
+    "preinstall": "bun run build_wasm",
     "dev": "concurrently \"cargo run\" \"vite\"",
-    "build": "yarn build_wasm && yarn build_js",
+    "build": "bun run build_wasm && bun run build_js",
     "build_wasm": "wasm-pack build --target web",
     "build_js": "tsc && vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "prettier": "^3.5.3",
-    "snake_game": "file:./pkg"
+    "prettier": "^3.5.3"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "concurrently": "^9.1.2",
     "typescript": "^5.3.3",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "wasm-pack": "^0.15.0"
   }
 }
