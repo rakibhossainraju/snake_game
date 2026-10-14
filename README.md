@@ -1,5 +1,7 @@
 # 🐍 Snake Game
-
+<a href="https://snake-game-wasm.netlify.app/" target="_blank">
+  <img width="818" height="891" alt="image" src="https://github.com/user-attachments/assets/7bc1a4a7-690c-4d65-bf23-eb703aa3a65d" />
+</a>
 A modern implementation of the classic Snake game using Rust, WebAssembly (WASM), and TypeScript.
 
 ## 🚀 Technologies Used
