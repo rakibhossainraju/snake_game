@@ -1,0 +1,46 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: jetli/wasm-pack-action@v0.4.0
+
+      # The preinstall script builds the wasm package (pkg/), so Rust and
+      # wasm-pack must be set up before this step.
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build
+
+      # PRs get a preview deploy, pushes to master get a production deploy.
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bunx netlify-cli deploy --dir=dist --no-build
+          else
+            bunx netlify-cli deploy --dir=dist --no-build --prod
+          fi
